@@ -1,0 +1,8 @@
+<div *ngIf="!loading else loadingView">
+  <at-scene
+    [assets]="assets"
+  ></at-scene>
+</div>
+<ng-template #loadingView>
+  アセットを読み込んでるよよよ {{loading}}
+</ng-template>
