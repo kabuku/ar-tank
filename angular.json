@@ -81,7 +81,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "ar-tank:build"
+            "browserTarget": "ar-tank:build",
+            "port": 4300
           },
           "configurations": {
             "production": {

@@ -1,15 +1,20 @@
-import {Assets} from '../assets';
 import * as THREE from 'three';
 import {Fire} from 'three/examples/jsm/objects/Fire';
-import * as dat from 'dat.gui';
+import {SpotLight} from 'three';
 
-const CHARGE_TIME = 1000;
-const GUN_FIRE_TIME = 500;
+const DEFAULT_CHARGE_TIME = 1000;
+const DEFAULT_GUN_FIRE_TIME = 500;
+const DEFAULT_GUN_FIRE_LIGHT_INTENSITY = 1;
 
+interface GunOptions {
+  debug: boolean;
+  chargeTime: number;
+  gunFireTime: number;
+  gunFireLightIntensity: number;
+}
 
 export class Gun extends THREE.Group {
   private gun: THREE.Group;
-  private fire: Fire;
   private fireGroup: THREE.Group;
   private shooting = false;
   private chargeTime = 0; // ms
@@ -18,17 +23,26 @@ export class Gun extends THREE.Group {
   }
   private gunFireTime = 0;
   private gunBoundingBox: THREE.Box3;
-  private options: {debug: boolean};
+  private options: GunOptions;
   private originalRotation: THREE.Euler;
 
-  constructor(private scene: THREE.Scene, private assets: Assets, options?: {debug: boolean}) {
+  constructor(private originGun: THREE.Group, options?: Partial<GunOptions>) {
     super();
 
-    this.options = Object.assign({debug: false}, options);
+    this.options = Object.assign(
+      {
+        debug: false,
+        chargeTime: DEFAULT_CHARGE_TIME,
+        gunFireTime: DEFAULT_GUN_FIRE_TIME,
+        gunFireLightIntensity: DEFAULT_GUN_FIRE_LIGHT_INTENSITY
+      },
+      options
+    );
 
-    const gun = this.assets.gun.clone();
-
+    const gun = originGun.clone();
+    gun.name = 'gun';
     const gunBox = new THREE.BoxHelper(gun);
+    gunBox.name = 'gunBox';
     gunBox.geometry.computeBoundingBox();
     this.gunBoundingBox = new THREE.Box3().setFromObject(gun);
     this.gun = gun;
@@ -43,12 +57,11 @@ export class Gun extends THREE.Group {
   }
 
   private initFire(position: THREE.Vector3) {
-    const gui = new dat.GUI();
     const plane = new THREE.PlaneBufferGeometry(1.5, 1.5);
     const fireGroup = new THREE.Group();
     this.add(fireGroup);
 
-    this.fire = new Fire(plane, {
+    const fire = new Fire(plane, {
       textureWidth: 512,
       textureHeight: 512,
       debug: false,
@@ -63,15 +76,19 @@ export class Gun extends THREE.Group {
       speed: 500,
     });
     fireGroup.position.set(position.x, position.y, position.z);
-    this.fire.rotation.y = Math.PI;
-    this.fire.clearSources();
-    this.fire.addSource(0.5, 0.1, 0.1, 1.0, 0.0, 1.0);
-    this.fire.position.y -= new THREE.Box3().setFromObject(this.fire).min.y + 0.05;
-    fireGroup.add(this.fire);
+    fire.rotation.y = Math.PI;
+    fire.clearSources();
+    fire.addSource(0.5, 0.1, 0.1, 1.0, 0.0, 1.0);
+    fire.position.y -= new THREE.Box3().setFromObject(fire).min.y + 0.05;
+    fireGroup.add(fire);
     this.fireGroup = fireGroup;
-    const light = new THREE.PointLight(0xFFFFFF, 5, 1, 1.0);
-    fireGroup.userData.light = light;
-    this.scene.add(light);
+    const light = new THREE.PointLight(0xFFFFFF, this.options.gunFireLightIntensity, 1, 1.0);
+    light.position.set(0.5, 0.5, -1.0);
+    light.name = 'fireLight';
+    this.fireGroup.add(light);
+    if (this.options.debug) {
+      this.fireGroup.add(new THREE.AxesHelper());
+    }
   }
 
   public shot(): boolean {
@@ -84,11 +101,11 @@ export class Gun extends THREE.Group {
     }
 
     this.initFire(
-      new THREE.Vector3(0, this.gunBoundingBox.max.y - 0.1, this.gunBoundingBox.max.z)
+      new THREE.Vector3(0, 0.03, 0.52)
     );
     this.shooting = true;
-    this.chargeTime = CHARGE_TIME;
-    this.gunFireTime = GUN_FIRE_TIME;
+    this.chargeTime = this.options.chargeTime;
+    this.gunFireTime = this.options.gunFireTime;
     this.originalRotation = this.rotation.clone();
     this.rotation.set(this.rotation.x + 10 * Math.PI / 180, this.rotation.y, this.rotation.z);
   }
@@ -104,17 +121,16 @@ export class Gun extends THREE.Group {
     this.gunFireTime -= delta * 1000;
     if (this.gunFireTime < 0) {
 
-      this.scene.remove(this.fireGroup.userData.light);
       this.remove(this.fireGroup);
       this.gunFireTime = 0;
       this.shooting = false;
       this.rotation.set(this.originalRotation.x, this.originalRotation.y, this.originalRotation.z);
       return;
     }
-    const scale = this.gunFireTime / GUN_FIRE_TIME;
+    const scale = this.gunFireTime / this.options.gunFireTime;
     this.fireGroup.scale.set(scale, scale, scale);
     this.rotation.set(this.originalRotation.x + 10 * scale * Math.PI / 180, this.rotation.y, this.rotation.z);
-    this.fireGroup.userData.light.intensity = scale;
+    (this.fireGroup.getObjectByName('fireLight') as SpotLight).intensity = this.options.gunFireLightIntensity * scale;
 
   }
 

@@ -1,21 +1,16 @@
 import {AfterViewInit, Component, ElementRef, Input, ViewChild} from '@angular/core';
 import * as THREE from 'three';
-import {AxesHelper, CameraHelper, Color, Mesh} from 'three';
-import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
-import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
+import {AxesHelper, CameraHelper, Color} from 'three';
 import {Assets} from '../models/assets';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {Gun} from '../models/game/gun';
 
-class Data {
-  positionX = 0.01;
-  positionY = 0.01;
-  positionZ = 0.01;
-  rotationX = 0.0;
-  rotationY = 0.0;
-  rotationZ = 0.0;
-  scale = 1;
+interface ThreeJSDebugWindow extends Window {
+  scene: THREE.Scene;
+  THREE: typeof THREE;
 }
+
+declare var window: ThreeJSDebugWindow;
 
 @Component({
   selector: 'at-scene',
@@ -36,7 +31,7 @@ export class SceneComponent implements AfterViewInit {
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
-      premultipliedAlpha:false
+      premultipliedAlpha: false
     });
     renderer.setClearColor(new THREE.Color('#ffffff'), 0);
     renderer.setSize(640, 480);
@@ -75,8 +70,10 @@ export class SceneComponent implements AfterViewInit {
     scene.add(new CameraHelper(camera));
     const ambientLight = new THREE.HemisphereLight(0xcccccc, 1);
     scene.add(ambientLight);
-    // window.scene = scene;
-    // window.THREE = THREE;
+
+    // for dubug
+    window.scene = scene;
+    window.THREE = THREE;
 ////////////////////////////////////////////////////////////////////////////////
 //          handle arToolkitSource
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,12 +82,6 @@ export class SceneComponent implements AfterViewInit {
       sourceType: 'webcam',
       displayHeight: 480,
       displayWidth: 640,
-      // to read from an image
-      // sourceType : 'image',
-      // sourceUrl : THREEx.ArToolkitContext.baseURL + '../data/images/img.jpg',
-      // to read from a video
-      // sourceType : 'video',
-      // sourceUrl : "https://storage.googleapis.com/kabuku-dev-ohashi-test/movie/headtracking.mp4",
     });
     arToolkitSource.init(() => {
       this.rootDiv.nativeElement.appendChild(arToolkitSource.domElement);
@@ -139,8 +130,6 @@ export class SceneComponent implements AfterViewInit {
     const artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
       type: 'pattern',
       patternUrl: '/assets/data/data/patt.hiro',
-      // patternUrl: ""
-      // patternUrl : THREEx.ArToolkitContext.baseURL + '../data/data/patt.kanji',
     });
     console.log('artoolkitMarker', artoolkitMarker);
 
@@ -150,7 +139,8 @@ export class SceneComponent implements AfterViewInit {
     // 		add an object in the scene
     //////////////////////////////////////////////////////////////////////////////////
 
-    const playerGun = new Gun(scene, this.assets, {debug: true});
+    const playerGun = new Gun(this.assets.gun, {debug: true});
+    playerGun.name = 'playerGun';
 
     playerGun.position.set(0.116, -0.057, -0.317);
     playerGun.rotation.set(0, 185 * Math.PI / 180, -2 * Math.PI / 180);
