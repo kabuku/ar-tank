@@ -28,9 +28,13 @@
     "@ngrx/store": "^8.0.1",
     "@ngrx/store-devtools": "^8.0.1",
     "ar.js": "^1.7.2",
+    "dat-gui": "^0.5.0",
+    "dat.gui": "^0.7.6",
     "rxjs": "~6.4.0",
     "three": "^0.106.2",
+    "three-particle-fire": "^0.0.0",
     "tslib": "^1.9.0",
+    "volumetric-fire": "https://github.com/yomotsu/VolumetricFire.git",
     "zone.js": "~0.9.1"
   },
   "devDependencies": {
@@ -38,6 +42,7 @@
     "@angular/cli": "~8.1.0",
     "@angular/compiler-cli": "~8.1.0",
     "@angular/language-service": "~8.1.0",
+    "@types/dat-gui": "^0.6.3",
     "@types/jasmine": "~3.3.8",
     "@types/jasminewd2": "~2.0.3",
     "@types/node": "~8.9.4",

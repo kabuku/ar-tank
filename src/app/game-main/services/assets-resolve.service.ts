@@ -6,9 +6,10 @@ import {map, mergeAll, reduce, take} from 'rxjs/operators';
 import * as THREE from 'three';
 import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
 import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
+import {TextureLoader} from 'three';
 
 
-type AssetType = 'json' | 'obj+mtl';
+type AssetType = 'json' | 'obj+mtl' | 'texture';
 
 interface AssetSource {
   type: AssetType;
@@ -26,8 +27,12 @@ interface MTLOBJAssetSource extends AssetSource {
   obj: string;
   mtl: string;
 }
+interface TextureAssetSource extends AssetSource {
+  type: 'texture';
+  url: string;
+}
 
-type AssetSources = JSONAssetSource | MTLOBJAssetSource;
+type AssetSources = JSONAssetSource | MTLOBJAssetSource | TextureAssetSource;
 
 interface LoadedAsset {
   id: keyof Assets;
@@ -45,11 +50,17 @@ interface MTLOBJLoadedAssets extends LoadedAsset {
   group: THREE.Group;
 }
 
+interface TextureLoadedAssets extends LoadedAsset {
+  type: 'texture';
+  texture: THREE.Texture;
+}
 
-type LoadedAssets = JSONLoadedAssets | MTLOBJLoadedAssets;
+
+type LoadedAssets = JSONLoadedAssets | MTLOBJLoadedAssets | TextureLoadedAssets;
 
 const assetSources: AssetSources[] = [
-  {type: 'obj+mtl', id: 'gun', path: '/assets/models/gun/', obj: 'model.obj', mtl: 'materials.mtl'}
+  {type: 'obj+mtl', id: 'gun', path: '/assets/models/gun/', obj: 'model.obj', mtl: 'materials.mtl'},
+  {type: 'texture', id: 'flare', url: '/assets/models/flare/flare.png'},
 ];
 
 @Injectable({
@@ -85,6 +96,11 @@ export class AssetsResolveService implements Resolve<Assets> {
                     });
                   });
                 });
+                case 'texture':
+                  return new Promise(r => {
+                    const loader = new TextureLoader();
+                    loader.load(source.url, texture => r({id: source.id, type: source.type, texture}));
+                  });
             }
           }
         ),
@@ -93,6 +109,10 @@ export class AssetsResolveService implements Resolve<Assets> {
           switch (asset.type) {
             case 'obj+mtl':
               assets[asset.id] = asset.group;
+              break;
+            case 'texture':
+              assets[asset.id] = asset.texture;
+              break;
           }
           return assets;
         }, {} as Partial<Assets>),
