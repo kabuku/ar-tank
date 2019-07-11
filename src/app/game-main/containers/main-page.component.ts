@@ -4,24 +4,40 @@ import {ActivatedRoute, Router, Event, NavigationStart, NavigationEnd, Navigatio
 import {Observable, Subject} from 'rxjs';
 import {Assets} from '../models/assets';
 import {map, takeUntil} from 'rxjs/operators';
+import {WebrtcConnectionService} from '../services/webrtc-connection.service';
 
 @Component({
   selector: 'at-main-page',
   template: `
+    <div>
+      <div>
+        
+        
+      </div>
     <at-main
       [assets]="assets"
       [loading]="loading"
     ></at-main>
+    </div>
   `,
   styles: []
 })
 export class MainPageComponent implements OnInit {
   public assets: Assets;
   public loading = true;
+  public stream: Observable<MediaStream>;
   private subject = new Subject();
-  constructor(private store: Store<any>, private router: Router, activeRoute: ActivatedRoute) {
+
+
+  constructor(
+    private store: Store<any>,
+    private router: Router,
+    private webRtc: WebrtcConnectionService,
+    activeRoute: ActivatedRoute) {
     activeRoute.data.subscribe((data: {assets: Assets}) => this.assets = data.assets);
     this.router.events.pipe(takeUntil(this.subject)).subscribe((routerEvent: Event) => this.checkRouterEvent(routerEvent));
+
+
 
   }
 

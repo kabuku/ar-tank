@@ -1,10 +1,12 @@
 import {AfterViewInit, Component, ElementRef, Input, ViewChild} from '@angular/core';
 import * as THREE from 'three';
-import {AxesHelper, CameraHelper, Color} from 'three';
+import {AxesHelper, CameraHelper, Color, Raycaster} from 'three';
 import {Assets} from '../models/assets';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {Gun} from '../models/game/gun';
-import {Enemy} from "../models/game/enemy";
+import {Enemy} from '../models/game/enemy';
+import * as Stats from 'stats.js';
+import {Explosion} from '../models/game/fire';
 
 interface ThreeJSDebugWindow extends Window {
   scene: THREE.Scene;
@@ -13,9 +15,24 @@ interface ThreeJSDebugWindow extends Window {
 
 declare var window: ThreeJSDebugWindow;
 
-class Stats {
+class GameStats {
   shoot: boolean;
 }
+
+interface BaseArSourceOptions extends THREEx.ArToolkitSourceOptions {
+  sourceType: 'webcam' | 'video' | 'image' | 'stream';
+}
+
+interface OriginalArSourceOptions extends BaseArSourceOptions {
+  sourceType: 'webcam' | 'video' | 'image';
+}
+
+interface StreamArSourceOptions extends BaseArSourceOptions {
+  sourceType: 'stream';
+  stream: MediaStream;
+}
+
+type ArSourceOptions = OriginalArSourceOptions | StreamArSourceOptions;
 
 @Component({
   selector: 'at-scene',
@@ -26,16 +43,29 @@ export class SceneComponent implements AfterViewInit {
 
   @Input() assets: Assets;
 
+  @Input() arSourceOptions: Partial<ArSourceOptions>;
+
   @ViewChild('root', {static: false})
   private rootDiv: ElementRef;
 
-  private stats: Stats;
+  private hitTargets: THREE.Object3D[] = [];
+
+  private explosions: Explosion[] = [];
+
+  private stats: GameStats;
 
   constructor() {
   }
 
   ngAfterViewInit() {
-    this.stats = new Stats();
+
+    this.arSourceOptions = Object.assign({
+      sourceType: 'webcam',
+      displayHeight: 480,
+      displayWidth: 640,
+    }, this.arSourceOptions);
+
+    this.stats = new GameStats();
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -61,6 +91,15 @@ export class SceneComponent implements AfterViewInit {
 
 // array of functions for the rendering loop
     const onRenderFcts = [];
+
+    const stats = new Stats();
+    stats.dom.style.position = 'absolute';
+    stats.dom.style.top = '0px';
+    stats.dom.style.zIndex = '100';
+    this.rootDiv.nativeElement.appendChild(stats.dom);
+    onRenderFcts.push(() => stats.update());
+
+
 // init scene and camera
     const scene = new THREE.Scene();
 //////////////////////////////////////////////////////////////////////////////////
@@ -85,17 +124,21 @@ export class SceneComponent implements AfterViewInit {
 ////////////////////////////////////////////////////////////////////////////////
 //          handle arToolkitSource
 ////////////////////////////////////////////////////////////////////////////////
-    const arToolkitSource = new THREEx.ArToolkitSource({
-      // to read from the webcam
-      sourceType: 'webcam',
-      displayHeight: 480,
-      displayWidth: 640,
-    });
+
+    let arToolkitSource: THREEx.ArToolkitSource;
+
+    if (this.arSourceOptions.sourceType !== 'stream') {
+      arToolkitSource = new THREEx.ArToolkitSource(this.arSourceOptions);
+    } else {
+      arToolkitSource = new THREEx.ArToolkitSource({...this.arSourceOptions, sourceType: 'video'});
+      (arToolkitSource.domElement as HTMLVideoElement).srcObject = this.arSourceOptions.stream;
+    }
+
     arToolkitSource.init(() => {
       this.rootDiv.nativeElement.appendChild(arToolkitSource.domElement);
       onResize();
     });
-// handle resize
+    // handle resize
     window.addEventListener('resize', () => {
       onResize();
     });
@@ -144,42 +187,6 @@ export class SceneComponent implements AfterViewInit {
 
     console.log('arToolkitContext', arToolkitContext);
 
-    //////////////////////////////////////////////////////////////////////////////////
-    // 		add an object in the scene
-    //////////////////////////////////////////////////////////////////////////////////
-
-    const playerGun = new Gun(this.assets.gun, {debug: true});
-    playerGun.name = 'playerGun';
-    playerGun.position.set(0.116, -0.057, -0.317);
-    playerGun.rotation.set(0, 185 * Math.PI / 180, -2 * Math.PI / 180);
-    playerGun.scale.set(0.2, 0.2, 0.2);
-    scene.add(playerGun);
-    renderer.domElement.addEventListener('click', () => this.stats.shoot = true);
-    onRenderFcts.push((delta, now) => {
-      playerGun.update(delta, now);
-      if (!this.stats.shoot) {
-        return;
-      }
-      this.stats.shoot = false;
-      if (!playerGun.shot()) {
-        return;
-      }
-      if (!markerRoot.visible) {
-        return;
-      }
-
-      
-
-      if ((-1 <= markerRoot.position.x && markerRoot.position.x <= 1)
-        && (-1 <= markerRoot.position.y && markerRoot.position.y <= 1)
-        && (-100 < markerRoot.position.z && markerRoot.position.z < 0)) {
-        console.log("hit");
-        enemy.hit();
-      } else {
-        console.log("not hit");
-      }
-    });
-
     const enemy = new Enemy(this.assets.gun2, {debug: true});
     enemy.scale.set(3, 3, 3);
     enemy.rotation.set(-90 * Math.PI / 180, 0, 0);
@@ -193,6 +200,81 @@ export class SceneComponent implements AfterViewInit {
     markerRoot.add(axis);
     const gridHelper = new THREE.GridHelper(20, 5);  // 引数は サイズ、1つのグリッドの大きさ
     markerRoot.add(gridHelper);
+
+    this.hitTargets.push(enemy.hitMesh);
+
+    //////////////////////////////////////////////////////////////////////////////////
+    // 		add an object in the scene
+    //////////////////////////////////////////////////////////////////////////////////
+
+    const playerGun = new Gun(this.assets.gun, {debug: true});
+    playerGun.name = 'playerGun';
+    playerGun.position.set(0.116, -0.057, -0.317);
+    playerGun.rotation.set(0, 185 * Math.PI / 180, -2 * Math.PI / 180);
+    playerGun.scale.set(0.2, 0.2, 0.2);
+    scene.add(playerGun);
+    renderer.domElement.addEventListener('click', () => this.stats.shoot = true);
+
+    this.explosions = [];
+    onRenderFcts.push((delta, now) => {
+      this.explosions.filter(ex => ex.burnOut).forEach(ex => ex.parent.remove(ex));
+      this.explosions = this.explosions.filter(ex => !ex.burnOut);
+      this.explosions.forEach(explosion => explosion.update(delta, now));
+    });
+
+    onRenderFcts.push((delta, now) => {
+      playerGun.update(delta, now);
+      if (!this.stats.shoot) {
+        return;
+      }
+      this.stats.shoot = false;
+      if (!playerGun.shot()) {
+        return;
+      }
+      const ray = new Raycaster(camera.position, new THREE.Vector3(0, 0, -1));
+
+      const intersections = ray.intersectObjects(this.hitTargets);
+      console.log('intersections', intersections);
+      let ex: Explosion;
+      if (intersections.length === 0) {
+        console.log('intersections not found');
+
+        // 遠いところに適当に爆発
+        ex = new Explosion({direction: -1, position: new THREE.Vector3(0, 0, -10)});
+        ex.name = 'explosion';
+        scene.add(ex);
+        this.explosions.push(ex);
+
+        return;
+      }
+      const intersectionObject = intersections[0];
+      if (intersectionObject.distance === 0) {
+        // 遠いところに適当に爆発
+        ex = new Explosion({direction: -1, position: new THREE.Vector3(0, 0, -10)});
+        ex.name = 'explosion';
+        scene.add(ex);
+        this.explosions.push(ex);
+
+        return;
+      }
+      if (intersectionObject.object.parent != null) {
+        const vec = intersectionObject.point.clone();
+        intersectionObject.object.parent.worldToLocal(vec);
+        ex = new Explosion({direction: -1, position: vec});
+        intersectionObject.object.parent.add(ex);
+      } else {
+        ex = new Explosion({direction: -1, position: intersectionObject.point.clone()});
+        scene.add(ex);
+      }
+      ex.name = 'explosion';
+      this.explosions.push(ex);
+
+      if (intersectionObject.object.parent.uuid === enemy.uuid) {
+        enemy.hit(intersectionObject.point.clone());
+      }
+
+    });
+
 //////////////////////////////////////////////////////////////////////////////////
 // 		render the whole thing on the page
 //////////////////////////////////////////////////////////////////////////////////
