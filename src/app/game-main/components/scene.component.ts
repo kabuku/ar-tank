@@ -4,6 +4,7 @@ import {AxesHelper, CameraHelper, Color} from 'three';
 import {Assets} from '../models/assets';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {Gun} from '../models/game/gun';
+import {Enemy} from "../models/game/enemy";
 
 interface ThreeJSDebugWindow extends Window {
   scene: THREE.Scene;
@@ -11,6 +12,10 @@ interface ThreeJSDebugWindow extends Window {
 }
 
 declare var window: ThreeJSDebugWindow;
+
+class Stats {
+  shoot: boolean;
+}
 
 @Component({
   selector: 'at-scene',
@@ -24,10 +29,13 @@ export class SceneComponent implements AfterViewInit {
   @ViewChild('root', {static: false})
   private rootDiv: ElementRef;
 
+  private stats: Stats;
+
   constructor() {
   }
 
   ngAfterViewInit() {
+    this.stats = new Stats();
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -127,6 +135,7 @@ export class SceneComponent implements AfterViewInit {
 ////////////////////////////////////////////////////////////////////////////////
     const markerRoot = new THREE.Group();
     scene.add(markerRoot);
+    markerRoot.translateZ(-50);
     const artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
       type: 'pattern',
       patternUrl: '/assets/data/data/patt.hiro',
@@ -141,66 +150,49 @@ export class SceneComponent implements AfterViewInit {
 
     const playerGun = new Gun(this.assets.gun, {debug: true});
     playerGun.name = 'playerGun';
-
     playerGun.position.set(0.116, -0.057, -0.317);
     playerGun.rotation.set(0, 185 * Math.PI / 180, -2 * Math.PI / 180);
     playerGun.scale.set(0.2, 0.2, 0.2);
     scene.add(playerGun);
-    onRenderFcts.push((delta, now) => playerGun.update(delta, now));
+    renderer.domElement.addEventListener('click', () => this.stats.shoot = true);
+    onRenderFcts.push((delta, now) => {
+      playerGun.update(delta, now);
+      if (!this.stats.shoot) {
+        return;
+      }
+      this.stats.shoot = false;
+      if (!playerGun.shot()) {
+        return;
+      }
+      if (!markerRoot.visible) {
+        return;
+      }
 
-    const m = new THREE.MeshBasicMaterial({color: 0xffffff, opacity: 0.5, transparent: true});
-    const geo = new THREE.BoxBufferGeometry(3, 3, 3);
-    const box = new THREE.Mesh(geo, m);
-    box.position.set(0, -1.5, 0);
-    const bbox = new THREE.BoxHelper(box, new Color(0xffff00));
+      
+
+      if ((-1 <= markerRoot.position.x && markerRoot.position.x <= 1)
+        && (-1 <= markerRoot.position.y && markerRoot.position.y <= 1)
+        && (-100 < markerRoot.position.z && markerRoot.position.z < 0)) {
+        console.log("hit");
+        enemy.hit();
+      } else {
+        console.log("not hit");
+      }
+    });
+
+    const enemy = new Enemy(this.assets.gun2, {debug: true});
+    enemy.scale.set(3, 3, 3);
+    enemy.rotation.set(-90 * Math.PI / 180, 0, 0);
+    enemy.position.set(0, -1.5, 0);
+    markerRoot.add(enemy);
+    onRenderFcts.push(enemy.update);
+    const bbox = new THREE.BoxHelper(enemy, new Color(0xffff00));
     markerRoot.add(bbox);
     // markerRoot.add(new THREEx.ArMarkerHelper(artoolkitMarker).object3d);
-    const videoTex = new THREE.VideoTexture(arToolkitSource.domElement as HTMLVideoElement);  // 映像をテクスチャとして取得
-    videoTex.minFilter = THREE.NearestFilter;             // 映像テクスチャのフィルタ処理
-    const cloak = new THREEx.ArMarkerCloak(videoTex);       // マーカ隠蔽(cloak)オブジェクト
-    // @ts-ignore
-    cloak.object3d.material.uniforms.opacity.value = 1.0; // cloakの不透明度
-    markerRoot.add(cloak.object3d);
-
     const axis = new THREE.AxesHelper(10);
-
     markerRoot.add(axis);
     const gridHelper = new THREE.GridHelper(20, 5);  // 引数は サイズ、1つのグリッドの大きさ
     markerRoot.add(gridHelper);
-    markerRoot.add(box);
-    const bullets = [];
-    const geometry = new THREE.IcosahedronBufferGeometry(1, 2);
-    window.addEventListener('click', e => {
-      playerGun.shot();
-      const material = new THREE.MeshPhongMaterial({color: 0xb6c4c6});
-      const object = new THREE.Mesh(geometry, material);
-      object.position.set(camera.position.x, camera.position.y, camera.position.z);
-      object.position.z -= 10;
-      scene.add(object);
-      bullets.push(object);
-      onRenderFcts.push((delta, now) => {
-        object.translateZ(-500 * delta);
-      });
-    });
-
-// 	// add a torus knot
-// var geometry	= new THREE.CubeGeometry(1,1,1);
-// var material	= new THREE.MeshNormalMaterial({
-// 	transparent : true,
-// 	opacity: 0.5,
-// 	side: THREE.DoubleSide
-// });
-// var mesh	= new THREE.Mesh( geometry, material );
-// mesh.position.y	= geometry.parameters.height/2
-// markerRoot.add( mesh );
-// var geometry	= new THREE.TorusKnotGeometry(0.3,0.1,64,16);
-// var material	= new THREE.MeshNormalMaterial();
-// var mesh	= new THREE.Mesh( geometry, material );
-// mesh.position.y	= 0.5
-// // scene.add( mesh );
-// onRenderFcts.push(function(){
-// 	mesh.rotation.x += 0.1
-// })
 //////////////////////////////////////////////////////////////////////////////////
 // 		render the whole thing on the page
 //////////////////////////////////////////////////////////////////////////////////
@@ -220,13 +212,6 @@ export class SceneComponent implements AfterViewInit {
     requestAnimationFrame(function animate(nowMsec) {
       // keep looping
       requestAnimationFrame(animate);
-      const ray = new THREE.Raycaster(camera.position, new THREE.Vector3(0, 0, -1));
-      const objs = ray.intersectObjects(scene.children, true);
-
-      // if(objs.length > 0) {
-      //     console.log("ray", objs);
-      // }
-
       // measure time
       lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
       const deltaMsec = Math.min(200, nowMsec - lastTimeMsec);

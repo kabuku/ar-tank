@@ -4,13 +4,14 @@ import {SpotLight} from 'three';
 
 const DEFAULT_CHARGE_TIME = 1000;
 const DEFAULT_GUN_FIRE_TIME = 500;
-const DEFAULT_GUN_FIRE_LIGHT_INTENSITY = 1;
+const DEFAULT_GUN_FIRE_LIGHT_INTENSITY = 10;
 
 interface GunOptions {
   debug: boolean;
   chargeTime: number;
   gunFireTime: number;
   gunFireLightIntensity: number;
+  direction: 1|-1;
 }
 
 export class Gun extends THREE.Group {
@@ -34,7 +35,8 @@ export class Gun extends THREE.Group {
         debug: false,
         chargeTime: DEFAULT_CHARGE_TIME,
         gunFireTime: DEFAULT_GUN_FIRE_TIME,
-        gunFireLightIntensity: DEFAULT_GUN_FIRE_LIGHT_INTENSITY
+        gunFireLightIntensity: DEFAULT_GUN_FIRE_LIGHT_INTENSITY,
+        direction: 1,
       },
       options
     );
@@ -76,7 +78,7 @@ export class Gun extends THREE.Group {
       speed: 500,
     });
     fireGroup.position.set(position.x, position.y, position.z);
-    fire.rotation.y = Math.PI;
+    fire.rotation.y = this.options.direction === 1 ? Math.PI : 0;
     fire.clearSources();
     fire.addSource(0.5, 0.1, 0.1, 1.0, 0.0, 1.0);
     fire.position.y -= new THREE.Box3().setFromObject(fire).min.y + 0.05;
@@ -92,10 +94,6 @@ export class Gun extends THREE.Group {
   }
 
   public shot(): boolean {
-    if (this.shooting) {
-      return false;
-    }
-
     if (this.chargeTime > 0) {
       return false;
     }
@@ -103,11 +101,11 @@ export class Gun extends THREE.Group {
     this.initFire(
       new THREE.Vector3(0, 0.03, 0.52)
     );
-    this.shooting = true;
     this.chargeTime = this.options.chargeTime;
     this.gunFireTime = this.options.gunFireTime;
     this.originalRotation = this.rotation.clone();
-    this.rotation.set(this.rotation.x + 10 * Math.PI / 180, this.rotation.y, this.rotation.z);
+    this.rotation.set(this.rotation.x + this.options.direction * 10 * Math.PI / 180, this.rotation.y, this.rotation.z);
+    return true;
   }
 
   update(delta, now) {
@@ -115,9 +113,10 @@ export class Gun extends THREE.Group {
       this.chargeTime = Math.max(0, this.chargeTime - delta * 1000);
     }
 
-    if (!this.shooting) {
+    if (this.gunFireTime <= 0) {
       return;
     }
+
     this.gunFireTime -= delta * 1000;
     if (this.gunFireTime < 0) {
 
@@ -129,7 +128,7 @@ export class Gun extends THREE.Group {
     }
     const scale = this.gunFireTime / this.options.gunFireTime;
     this.fireGroup.scale.set(scale, scale, scale);
-    this.rotation.set(this.originalRotation.x + 10 * scale * Math.PI / 180, this.rotation.y, this.rotation.z);
+    this.rotation.set(this.originalRotation.x + this.options.direction * 10 * scale * Math.PI / 180, this.rotation.y, this.rotation.z);
     (this.fireGroup.getObjectByName('fireLight') as SpotLight).intensity = this.options.gunFireLightIntensity * scale;
 
   }

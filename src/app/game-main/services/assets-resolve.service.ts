@@ -60,6 +60,7 @@ type LoadedAssets = JSONLoadedAssets | MTLOBJLoadedAssets | TextureLoadedAssets;
 
 const assetSources: AssetSources[] = [
   {type: 'obj+mtl', id: 'gun', path: '/assets/models/gun/', obj: 'model.obj', mtl: 'materials.mtl'},
+  {type: 'obj+mtl', id: 'gun2', path: '/assets/models/gun2/', obj: 'model.obj', mtl: 'materials.mtl'},
   {type: 'texture', id: 'flare', url: '/assets/models/flare/flare.png'},
 ];
 
