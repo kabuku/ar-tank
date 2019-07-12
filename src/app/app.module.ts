@@ -12,6 +12,7 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {GameMainModule} from './game-main/game-main.module';
 import {metaReducers, reducers} from './store/reducers';
 import {Effects} from './store/effects';
+import {FlexLayoutModule} from '@angular/flex-layout';
 
 @NgModule({
   declarations: [
@@ -25,7 +26,7 @@ import {Effects} from './store/effects';
     EffectsModule.forRoot([Effects]),
     StoreRouterConnectingModule.forRoot(),
     BrowserAnimationsModule,
-    GameMainModule
+    FlexLayoutModule,
   ],
   providers: [],
   bootstrap: [AppComponent]

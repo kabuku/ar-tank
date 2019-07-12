@@ -7,6 +7,7 @@ import {Gun} from '../models/game/gun';
 import {Enemy} from '../models/game/enemy';
 import * as Stats from 'stats.js';
 import {Explosion} from '../models/game/fire';
+import {GameOptions} from '../models/game-options';
 
 interface ThreeJSDebugWindow extends Window {
   scene: THREE.Scene;
@@ -19,21 +20,6 @@ class GameStats {
   shoot: boolean;
 }
 
-interface BaseArSourceOptions extends THREEx.ArToolkitSourceOptions {
-  sourceType: 'webcam' | 'video' | 'image' | 'stream';
-}
-
-interface OriginalArSourceOptions extends BaseArSourceOptions {
-  sourceType: 'webcam' | 'video' | 'image';
-}
-
-interface StreamArSourceOptions extends BaseArSourceOptions {
-  sourceType: 'stream';
-  stream: MediaStream;
-}
-
-type ArSourceOptions = OriginalArSourceOptions | StreamArSourceOptions;
-
 @Component({
   selector: 'at-scene',
   templateUrl: './scene.component.html',
@@ -43,7 +29,7 @@ export class SceneComponent implements AfterViewInit {
 
   @Input() assets: Assets;
 
-  @Input() arSourceOptions: Partial<ArSourceOptions>;
+  @Input() gameOptions: Partial<GameOptions>;
 
   @ViewChild('root', {static: false})
   private rootDiv: ElementRef;
@@ -59,11 +45,13 @@ export class SceneComponent implements AfterViewInit {
 
   ngAfterViewInit() {
 
-    this.arSourceOptions = Object.assign({
-      sourceType: 'webcam',
-      displayHeight: 480,
-      displayWidth: 640,
-    }, this.arSourceOptions);
+    this.gameOptions = Object.assign({
+      arSourceOptions: {
+        sourceType: 'webcam',
+        displayHeight: 480,
+        displayWidth: 640,
+      }
+    }, this.gameOptions);
 
     this.stats = new GameStats();
     const renderer = new THREE.WebGLRenderer({
@@ -127,11 +115,11 @@ export class SceneComponent implements AfterViewInit {
 
     let arToolkitSource: THREEx.ArToolkitSource;
 
-    if (this.arSourceOptions.sourceType !== 'stream') {
-      arToolkitSource = new THREEx.ArToolkitSource(this.arSourceOptions);
+    if (this.gameOptions.arSourceOptions.sourceType !== 'stream') {
+      arToolkitSource = new THREEx.ArToolkitSource(this.gameOptions.arSourceOptions);
     } else {
-      arToolkitSource = new THREEx.ArToolkitSource({...this.arSourceOptions, sourceType: 'video'});
-      (arToolkitSource.domElement as HTMLVideoElement).srcObject = this.arSourceOptions.stream;
+      arToolkitSource = new THREEx.ArToolkitSource({...this.gameOptions.arSourceOptions, sourceType: 'video'});
+      (arToolkitSource.domElement as HTMLVideoElement).srcObject = this.gameOptions.arSourceOptions.stream;
     }
 
     arToolkitSource.init(() => {
