@@ -1,5 +1,7 @@
-import {Component, Input, OnInit} from '@angular/core';
+import {Component, Input, OnInit, ViewChild} from '@angular/core';
 import {Assets} from '../models/assets';
+import {GameOptions} from '../models/game-options';
+import {SceneComponent} from './scene.component';
 
 @Component({
   selector: 'at-main',
@@ -8,10 +10,17 @@ import {Assets} from '../models/assets';
 })
 export class MainComponent implements OnInit {
 
+  @ViewChild(SceneComponent, {static: false}) sceneRef: SceneComponent;
+
   @Input() loading: boolean;
   @Input() assets: Assets;
+  @Input() gameOptions: GameOptions;
 
   constructor() { }
+
+  start() {
+    this.sceneRef.start();
+  }
 
   ngOnInit() {
   }

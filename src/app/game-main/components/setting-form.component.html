@@ -1,4 +1,4 @@
-<form [formGroup]="form" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px">
+<form [formGroup]="form" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" (ngSubmit)="gameOptionsChange.emit(form.value)">
   <mat-checkbox formControlName="debug">デバッグ</mat-checkbox>
   <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" formGroupName="arSourceOptions">
     <mat-form-field>
@@ -10,17 +10,20 @@
         <mat-option value="stream">ストリーム</mat-option>
       </mat-select>
     </mat-form-field>
-    <div *ngIf="sourceType.value === 'stream'">
+    <div [hidden]="sourceType.value !== 'stream'">
       <mat-form-field>
         <mat-label>接続先ホスト名(ポート付き)</mat-label>
-        <input matInput formControlName="hostPath">
+        <input matInput formControlName="hostPath" required>
       </mat-form-field>
       <mat-form-field>
         <mat-label>シグナリングサーバパス</mat-label>
-        <input matInput formControlName="signalingPath">
+        <input matInput formControlName="signalingPath" required>
       </mat-form-field>
+      <div>
+        <button mat-raised-button (click)="onClickConnect()" [disabled]="!form.valid">接続</button>
+      </div>
     </div>
-    <mat-form-field *ngIf="sourceType.value === 'image' || sourceType.value === 'video'">
+    <mat-form-field [hidden]="sourceType.value !== 'image' && sourceType.value !== 'video'">
       <mat-label>リソースURL</mat-label>
       <input matInput formControlName="sourceURL">
     </mat-form-field>
@@ -40,5 +43,8 @@
       <mat-label>表示height</mat-label>
       <input matInput formControlName="displayHeight">
     </mat-form-field>
+    <div>
+      <button mat-raised-button type="submit">設定</button>
+    </div>
   </div>
 </form>

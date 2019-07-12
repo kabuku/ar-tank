@@ -25,11 +25,20 @@ class GameStats {
   templateUrl: './scene.component.html',
   styleUrls: ['./scene.component.scss']
 })
-export class SceneComponent implements AfterViewInit {
+export class SceneComponent {
+  private animationFrameId: number;
+  @Input()
+  set gameOptions(value: Partial<GameOptions>) {
+    this._gameOptions = value;
+  }
+  get gameOptions() {
+    return this._gameOptions;
+  }
 
   @Input() assets: Assets;
 
-  @Input() gameOptions: Partial<GameOptions>;
+  // tslint:disable-next-line:variable-name
+  private _gameOptions: Partial<GameOptions>;
 
   @ViewChild('root', {static: false})
   private rootDiv: ElementRef;
@@ -40,19 +49,30 @@ export class SceneComponent implements AfterViewInit {
 
   private stats: GameStats;
 
+  private gameInitialized = false;
+
   constructor() {
   }
 
-  ngAfterViewInit() {
-
-    this.gameOptions = Object.assign({
-      arSourceOptions: {
-        sourceType: 'webcam',
-        displayHeight: 480,
-        displayWidth: 640,
+  start() {
+    if (!this._gameOptions) {
+      return;
+    }
+    if (this.gameInitialized) {
+      while (this.rootDiv.nativeElement.lastChild) {
+        this.rootDiv.nativeElement.removeChild(this.rootDiv.nativeElement.lastChild);
       }
-    }, this.gameOptions);
+    }
 
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+    this.initGame();
+  }
+
+  private initGame() {
+    this.hitTargets = [];
+    this.explosions = [];
     this.stats = new GameStats();
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -115,17 +135,20 @@ export class SceneComponent implements AfterViewInit {
 
     let arToolkitSource: THREEx.ArToolkitSource;
 
-    if (this.gameOptions.arSourceOptions.sourceType !== 'stream') {
-      arToolkitSource = new THREEx.ArToolkitSource(this.gameOptions.arSourceOptions);
+    if (this._gameOptions.arSourceOptions.sourceType !== 'stream') {
+      arToolkitSource = new THREEx.ArToolkitSource(this._gameOptions.arSourceOptions);
     } else {
-      arToolkitSource = new THREEx.ArToolkitSource({...this.gameOptions.arSourceOptions, sourceType: 'video'});
-      (arToolkitSource.domElement as HTMLVideoElement).srcObject = this.gameOptions.arSourceOptions.stream;
+      arToolkitSource = new THREEx.ArToolkitSource({...this._gameOptions.arSourceOptions, sourceType: 'video'});
     }
-
     arToolkitSource.init(() => {
+      console.log('initialized');
+      console.log(arToolkitSource.domElement);
       this.rootDiv.nativeElement.appendChild(arToolkitSource.domElement);
       onResize();
     });
+    if (this._gameOptions.arSourceOptions.sourceType === 'stream') {
+      (arToolkitSource.domElement as HTMLVideoElement).srcObject = this._gameOptions.arSourceOptions.stream;
+    }
     // handle resize
     window.addEventListener('resize', () => {
       onResize();
@@ -278,10 +301,9 @@ export class SceneComponent implements AfterViewInit {
     let lastTimeMsec = null;
     const pos = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
     pos.unproject(camera);
-
-    requestAnimationFrame(function animate(nowMsec) {
+    const animate = (nowMsec) => {
       // keep looping
-      requestAnimationFrame(animate);
+      this.animationFrameId = requestAnimationFrame(animate);
       // measure time
       lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
       const deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
@@ -290,7 +312,8 @@ export class SceneComponent implements AfterViewInit {
       onRenderFcts.forEach(onRenderFct => {
         onRenderFct(deltaMsec / 1000, nowMsec / 1000);
       });
-    });
+    }
+    this.animationFrameId = requestAnimationFrame(animate);
+    this.gameInitialized = true;
   }
-
 }

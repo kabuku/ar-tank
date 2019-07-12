@@ -1,6 +1,7 @@
 <div *ngIf="!loading else loadingView">
   <at-scene
     [assets]="assets"
+    [gameOptions]="gameOptions"
   ></at-scene>
 </div>
 <ng-template #loadingView>
