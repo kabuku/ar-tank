@@ -43,11 +43,21 @@ export class MainPageComponent implements OnInit {
     this.gameOptions = {
       debug: true,
       arSourceOptions: {
-        sourceType: 'stream',
-        signalingPath: 'wss://raspberrypi.local:8090/stream/webrtc',
-        hostPath: 'raspberrypi.local',
+        sourceType: 'image',
+        // signalingPath: 'wss://raspberrypi-dalailama.local:8080/stream/webrtc',
+        // hostPath: 'raspberrypi-dalailama.local',
+        sourceUrl: 'https://raspberrypi-dalailama.local:8080/stream/video.mjpeg',
         displayHeight: 480,
         displayWidth: 640,
+        sourceHeight: 240,
+        sourceWidth: 320
+        // sourceType: 'stream',
+        // signalingPath: 'wss://raspberrypi-dalailama.local:8080/stream/webrtc',
+        // hostPath: 'raspberrypi-dalailama.local',
+        // displayHeight: 480,
+        // displayWidth: 640,
+        // sourceHeight: 240,
+        // sourceWidth: 320
       }
     };
 

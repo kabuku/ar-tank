@@ -1,6 +1,6 @@
-import {AfterViewInit, Component, ElementRef, Input, ViewChild} from '@angular/core';
+import {Component, ElementRef, Input, ViewChild} from '@angular/core';
 import * as THREE from 'three';
-import {AxesHelper, CameraHelper, Color, Raycaster} from 'three';
+import {AxesHelper, CameraHelper, Raycaster} from 'three';
 import {Assets} from '../models/assets';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {Gun} from '../models/game/gun';
@@ -20,6 +20,13 @@ class GameStats {
   shoot: boolean;
 }
 
+interface EnemyMarker {
+  name: string;
+  patternFile: string;
+  position: THREE.Vector3;
+  rotation: THREE.Euler;
+}
+
 @Component({
   selector: 'at-scene',
   templateUrl: './scene.component.html',
@@ -27,10 +34,12 @@ class GameStats {
 })
 export class SceneComponent {
   private animationFrameId: number;
+
   @Input()
   set gameOptions(value: Partial<GameOptions>) {
     this._gameOptions = value;
   }
+
   get gameOptions() {
     return this._gameOptions;
   }
@@ -50,6 +59,10 @@ export class SceneComponent {
   private stats: GameStats;
 
   private gameInitialized = false;
+
+  private enemies: Enemy[] = [];
+
+  private enemyMarkerRoots: THREE.Group[];
 
   constructor() {
   }
@@ -73,151 +86,60 @@ export class SceneComponent {
   private initGame() {
     this.hitTargets = [];
     this.explosions = [];
+    this.enemies = [];
+    this.enemyMarkerRoots = [];
     this.stats = new GameStats();
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      premultipliedAlpha: false
-    });
-    renderer.setClearColor(new THREE.Color('#ffffff'), 0);
-    renderer.setSize(640, 480);
-    renderer.domElement.style.position = 'absolute';
-    renderer.domElement.style.top = '0px';
-    renderer.domElement.style.left = '0px';
-    this.rootDiv.nativeElement.appendChild(renderer.domElement);
+    const {renderer, renderer2} = this.initRenderer();
 
-    const renderer2 = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true
-    });
-    renderer2.setClearColor(new THREE.Color('lightgrey'), 1);
-    renderer2.setSize(640, 480);
-    renderer2.domElement.style.position = 'absolute';
-    renderer2.domElement.style.top = '0px';
-    renderer2.domElement.style.left = '640px';
-    this.rootDiv.nativeElement.appendChild(renderer2.domElement);
-
-// array of functions for the rendering loop
     const onRenderFcts = [];
 
-    const stats = new Stats();
-    stats.dom.style.position = 'absolute';
-    stats.dom.style.top = '0px';
-    stats.dom.style.zIndex = '100';
-    this.rootDiv.nativeElement.appendChild(stats.dom);
-    onRenderFcts.push(() => stats.update());
-
-
-// init scene and camera
-    const scene = new THREE.Scene();
-//////////////////////////////////////////////////////////////////////////////////
-// 		Initialize a basic camera
-//////////////////////////////////////////////////////////////////////////////////
-// Create a camera
-
-    const debugCamera = new THREE.PerspectiveCamera();
-    debugCamera.lookAt(new THREE.Vector3(0, 0, 0));
-    debugCamera.position.set(0, 5, -10);
-    scene.add(new AxesHelper());
-    new OrbitControls(debugCamera, renderer2.domElement);
-    const camera = new THREE.Camera();
-    scene.add(camera);
-    scene.add(new CameraHelper(camera));
-    const ambientLight = new THREE.HemisphereLight(0xcccccc, 1);
-    scene.add(ambientLight);
-
-    // for dubug
-    window.scene = scene;
-    window.THREE = THREE;
-////////////////////////////////////////////////////////////////////////////////
-//          handle arToolkitSource
-////////////////////////////////////////////////////////////////////////////////
-
-    let arToolkitSource: THREEx.ArToolkitSource;
-
-    if (this._gameOptions.arSourceOptions.sourceType !== 'stream') {
-      arToolkitSource = new THREEx.ArToolkitSource(this._gameOptions.arSourceOptions);
-    } else {
-      arToolkitSource = new THREEx.ArToolkitSource({...this._gameOptions.arSourceOptions, sourceType: 'video'});
-    }
-    arToolkitSource.init(() => {
-      console.log('initialized');
-      console.log(arToolkitSource.domElement);
-      this.rootDiv.nativeElement.appendChild(arToolkitSource.domElement);
-      onResize();
-    });
-    if (this._gameOptions.arSourceOptions.sourceType === 'stream') {
-      (arToolkitSource.domElement as HTMLVideoElement).srcObject = this._gameOptions.arSourceOptions.stream;
-    }
-    // handle resize
-    window.addEventListener('resize', () => {
-      onResize();
-    });
-
-    function onResize() {
-      arToolkitSource.copyElementSizeTo(renderer.domElement);
-      if (arToolkitContext.arController !== null) {
-        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
-      }
+    if (this.gameOptions.debug) {
+      const stats = new Stats();
+      stats.dom.style.position = 'absolute';
+      stats.dom.style.top = '0px';
+      stats.dom.style.zIndex = '100';
+      this.rootDiv.nativeElement.appendChild(stats.dom);
+      onRenderFcts.push(() => stats.update());
     }
 
-////////////////////////////////////////////////////////////////////////////////
-//          initialize arToolkitContext
-////////////////////////////////////////////////////////////////////////////////
-// create atToolkitContext
-    const arToolkitContext = new THREEx.ArToolkitContext({
-      debug: false,
-      cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '../data/data/camera_para.dat',
-      detectionMode: 'mono'
-    });
-// initialize it
-    arToolkitContext.init(function onCompleted() {
-      // copy projection matrix to camera
-      camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-    });
+    // init scene and camera
+    const {scene, debugCamera, camera} = this.initWorld(renderer2);
 
-// update artoolkit on every frame
-    onRenderFcts.push(() => {
-      if (arToolkitSource.ready === false) {
-        return;
-      }
-      arToolkitContext.update(arToolkitSource.domElement);
+    // init ar context, source
+    const arToolkitContext = this.initAr(renderer, camera, onRenderFcts);
 
-    });
-////////////////////////////////////////////////////////////////////////////////
-//          Create a ArMarkerControls
-////////////////////////////////////////////////////////////////////////////////
-    const markerRoot = new THREE.Group();
-    scene.add(markerRoot);
-    markerRoot.translateZ(-50);
-    const artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
-      type: 'pattern',
-      patternUrl: '/assets/data/data/patt.hiro',
-    });
-    console.log('artoolkitMarker', artoolkitMarker);
-
-    console.log('arToolkitContext', arToolkitContext);
-
-    const enemy = new Enemy(this.assets.gun2, {debug: true});
-    enemy.scale.set(3, 3, 3);
-    enemy.rotation.set(-90 * Math.PI / 180, 0, 0);
-    enemy.position.set(0, -1.5, 0);
-    markerRoot.add(enemy);
-    onRenderFcts.push(enemy.update);
-    const bbox = new THREE.BoxHelper(enemy, new Color(0xffff00));
-    markerRoot.add(bbox);
-    // markerRoot.add(new THREEx.ArMarkerHelper(artoolkitMarker).object3d);
-    const axis = new THREE.AxesHelper(10);
-    markerRoot.add(axis);
-    const gridHelper = new THREE.GridHelper(20, 5);  // 引数は サイズ、1つのグリッドの大きさ
-    markerRoot.add(gridHelper);
-
-    this.hitTargets.push(enemy.hitMesh);
-
+    // setup enemy
+    this.setupEnemy(scene, arToolkitContext, camera, onRenderFcts);
     //////////////////////////////////////////////////////////////////////////////////
     // 		add an object in the scene
     //////////////////////////////////////////////////////////////////////////////////
+    this.setupPlayer(scene, renderer, onRenderFcts, camera);
 
+    // render the scene
+    onRenderFcts.push(() => {
+      renderer.render(scene, camera);
+      renderer2.render(scene, debugCamera);
+    });
+
+    // run the rendering loop
+    let lastTimeMsec = null;
+    const animate = (nowMsec) => {
+      // keep looping
+      this.animationFrameId = requestAnimationFrame(animate);
+      // measure time
+      lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
+      const deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
+      lastTimeMsec = nowMsec;
+      // call each update function
+      onRenderFcts.forEach(onRenderFct => {
+        onRenderFct(deltaMsec / 1000, nowMsec / 1000);
+      });
+    };
+    this.animationFrameId = requestAnimationFrame(animate);
+    this.gameInitialized = true;
+  }
+
+  private setupPlayer(scene: THREE.Scene, renderer: THREE.Renderer, onRenderFcts, camera: THREE.Camera) {
     const playerGun = new Gun(this.assets.gun, {debug: true});
     playerGun.name = 'playerGun';
     playerGun.position.set(0.116, -0.057, -0.317);
@@ -243,15 +165,14 @@ export class SceneComponent {
         return;
       }
       const ray = new Raycaster(camera.position, new THREE.Vector3(0, 0, -1));
-
-      const intersections = ray.intersectObjects(this.hitTargets);
+      const intersections = ray.intersectObjects(this.hitTargets, true);
       console.log('intersections', intersections);
       let ex: Explosion;
       if (intersections.length === 0) {
         console.log('intersections not found');
 
         // 遠いところに適当に爆発
-        ex = new Explosion({direction: -1, position: new THREE.Vector3(0, 0, -10)});
+        ex = new Explosion({direction: -1, position: new THREE.Vector3(0, 0, -10), fireTime: 2000});
         ex.name = 'explosion';
         scene.add(ex);
         this.explosions.push(ex);
@@ -260,60 +181,267 @@ export class SceneComponent {
       }
       const intersectionObject = intersections[0];
       if (intersectionObject.distance === 0) {
+        console.log('not hit');
         // 遠いところに適当に爆発
-        ex = new Explosion({direction: -1, position: new THREE.Vector3(0, 0, -10)});
+        ex = new Explosion({direction: -1, position: new THREE.Vector3(0, 0, -10), fireTime: 2000});
         ex.name = 'explosion';
         scene.add(ex);
         this.explosions.push(ex);
 
         return;
       }
-      if (intersectionObject.object.parent != null) {
+      if (intersectionObject.object.parent != null && intersectionObject.object.parent !== scene) {
+        console.log('hit to enemy', intersectionObject.object);
         const vec = intersectionObject.point.clone();
         intersectionObject.object.parent.worldToLocal(vec);
-        ex = new Explosion({direction: -1, position: vec});
+        ex = new Explosion({direction: -1, position: vec, fireTime: 20000});
         intersectionObject.object.parent.add(ex);
       } else {
-        ex = new Explosion({direction: -1, position: intersectionObject.point.clone()});
+        console.log('hit to non-enemy');
+        ex = new Explosion({direction: -1, position: intersectionObject.point.clone(), fireTime: 2000});
         scene.add(ex);
       }
       ex.name = 'explosion';
       this.explosions.push(ex);
 
-      if (intersectionObject.object.parent.uuid === enemy.uuid) {
-        enemy.hit(intersectionObject.point.clone());
-      }
+      this.enemies
+        .filter(enemy => enemy.parent.visible)
+        .filter(enemy => intersectionObject.object.parent.uuid === enemy.uuid)
+        .forEach(enemy => enemy.hit(intersectionObject.point.clone()));
 
     });
-
-//////////////////////////////////////////////////////////////////////////////////
-// 		render the whole thing on the page
-//////////////////////////////////////////////////////////////////////////////////
-// render the scene
-    onRenderFcts.push(() => {
-      renderer.render(scene, camera);
-    });
-    onRenderFcts.push(() => {
-      renderer2.render(scene, debugCamera);
-    });
-
-// run the rendering loop
-    let lastTimeMsec = null;
-    const pos = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
-    pos.unproject(camera);
-    const animate = (nowMsec) => {
-      // keep looping
-      this.animationFrameId = requestAnimationFrame(animate);
-      // measure time
-      lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
-      const deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
-      lastTimeMsec = nowMsec;
-      // call each update function
-      onRenderFcts.forEach(onRenderFct => {
-        onRenderFct(deltaMsec / 1000, nowMsec / 1000);
-      });
-    }
-    this.animationFrameId = requestAnimationFrame(animate);
-    this.gameInitialized = true;
   }
+
+  private initAr(renderer, camera, onRenderFcts) {
+    let arToolkitSource: THREEx.ArToolkitSource;
+
+    if (this._gameOptions.arSourceOptions.sourceType !== 'stream') {
+      arToolkitSource = new THREEx.ArToolkitSource(this._gameOptions.arSourceOptions);
+    } else {
+      arToolkitSource = new THREEx.ArToolkitSource({...this._gameOptions.arSourceOptions, sourceType: 'video'});
+    }
+    arToolkitSource.init(() => {
+      console.log('initialized');
+      console.log(arToolkitSource.domElement);
+      this.rootDiv.nativeElement.appendChild(arToolkitSource.domElement);
+      onResize();
+    });
+    if (this._gameOptions.arSourceOptions.sourceType === 'image') {
+      (arToolkitSource.domElement as HTMLImageElement).crossOrigin = 'anonymous';
+    } else if (this._gameOptions.arSourceOptions.sourceType === 'stream') {
+      (arToolkitSource.domElement as HTMLVideoElement).srcObject = this._gameOptions.arSourceOptions.stream;
+    }
+    // handle resize
+    window.addEventListener('resize', () => {
+      onResize();
+    });
+
+    function onResize() {
+      arToolkitSource.copyElementSizeTo(renderer.domElement);
+      if (arToolkitContext.arController !== null) {
+        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+      }
+    }
+
+////////////////////////////////////////////////////////////////////////////////
+//          initialize arToolkitContext
+////////////////////////////////////////////////////////////////////////////////
+    // create atToolkitContext
+    const arToolkitContext = new THREEx.ArToolkitContext({
+      debug: true,
+      cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '../data/data/camera_para.dat',
+      detectionMode: 'mono',
+      patternRatio: 0.8
+    } as Partial<THREEx.ArToolkitContextOptions>);
+    // initialize it
+    arToolkitContext.init(function onCompleted() {
+      // copy projection matrix to camera
+      camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+    });
+
+    // update artoolkit on every frame
+    onRenderFcts.push(() => {
+      if (arToolkitSource.ready === false) {
+        return;
+      }
+      arToolkitContext.update(arToolkitSource.domElement);
+
+    });
+    return arToolkitContext;
+  }
+
+  private initWorld(renderer2: THREE.Renderer) {
+    const scene = new THREE.Scene();
+
+    const debugCamera = new THREE.PerspectiveCamera();
+    debugCamera.lookAt(new THREE.Vector3(0, 0, 0));
+    debugCamera.position.set(0, 5, -10);
+    scene.add(new AxesHelper());
+    new OrbitControls(debugCamera, renderer2.domElement);
+    const camera = new THREE.Camera();
+    scene.add(camera);
+    scene.add(new CameraHelper(camera));
+    const ambientLight = new THREE.HemisphereLight(0xcccccc, 1);
+    scene.add(ambientLight);
+
+    // for debug by chrome extension
+    if (this.gameOptions.debug) {
+      window.scene = scene;
+      window.THREE = THREE;
+    }
+    return {scene, debugCamera, camera};
+  }
+
+  private initRenderer() {
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      premultipliedAlpha: false
+    });
+    renderer.setClearColor(new THREE.Color('#ffffff'), 0);
+    renderer.setSize(640, 480);
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0px';
+    renderer.domElement.style.left = '0px';
+    this.rootDiv.nativeElement.appendChild(renderer.domElement);
+
+    const renderer2 = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true
+    });
+    renderer2.setClearColor(new THREE.Color('lightgrey'), 1);
+    renderer2.setSize(640, 480);
+    renderer2.domElement.style.position = 'absolute';
+    renderer2.domElement.style.top = '0px';
+    renderer2.domElement.style.left = '640px';
+    this.rootDiv.nativeElement.appendChild(renderer2.domElement);
+    return {renderer, renderer2};
+  }
+
+  private setupEnemy(scene: THREE.Scene, arToolkitContext: THREEx.ArToolkitContext, camera: THREE.Camera, onRenderFcts) {
+    const scale = 1.2;
+    const enemyMarkerOptions: EnemyMarker[] = [
+      {
+        name: 'enemy-mae',
+        patternFile: 'pattern-mae.patt',
+        position: new THREE.Vector3(0, -0.5, 0),
+        rotation: new THREE.Euler(-90 * Math.PI / 180, 0, 0)
+      },
+      {
+        name: 'enemy-ushiro',
+        patternFile: 'pattern-usiro.patt',
+        position: new THREE.Vector3(0, -0.5, 0),
+        rotation: new THREE.Euler(-90 * Math.PI / 180, 180 * Math.PI / 180, 0)
+      },
+      {
+        name: 'enemy-migi',
+        patternFile: 'pattern-migi.patt',
+        position: new THREE.Vector3(0, -0.5, 0),
+        rotation: new THREE.Euler(-90 * Math.PI / 180, -90 * Math.PI / 180, 0)
+      },
+      {
+        name: 'enemy-hidari',
+        patternFile: 'pattern-hidari.patt',
+        position: new THREE.Vector3(0, -0.5, 0),
+        rotation: new THREE.Euler(-90 * Math.PI / 180, 90 * Math.PI / 180, 0)
+      },
+    ];
+
+    enemyMarkerOptions.forEach(em => {
+      const markerRoot = new THREE.Group();
+      markerRoot.name = em.name;
+      scene.add(markerRoot);
+      const artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+        type: 'pattern',
+        patternUrl: `/assets/marker/${em.patternFile}?${new Date().getTime()}`
+      });
+      const enemy = new Enemy(this.assets.gun2, {debug: true});
+      enemy.position.set(em.position.x * scale, em.position.y * scale, em.position.z * scale);
+      enemy.rotation.copy(em.rotation);
+      enemy.scale.set(scale, scale, scale);
+      markerRoot.add(enemy);
+      onRenderFcts.push(enemy.update);
+      this.enemies.push(enemy);
+      this.hitTargets.push(markerRoot);
+      this.enemyMarkerRoots.push(markerRoot);
+    });
+
+    // control enemy visibility
+    onRenderFcts.push(() => {
+      const visibleMarkers = this.enemyMarkerRoots.filter(markerRoot => markerRoot.visible);
+
+      if (visibleMarkers.length < 2) {
+        return;
+      }
+      visibleMarkers.sort((m1, m2) => Math.abs(m2.rotation.z) - Math.abs(m1.rotation.z)).forEach((marker, i) => {
+        if (i !== 0) {
+          marker.visible = false;
+        }
+      });
+
+      if (this.gameOptions.debug) {
+        this.enemyMarkerRoots.map(markerRoot => {
+          if (markerRoot.userData && markerRoot.userData.text) {
+            markerRoot.remove(markerRoot.userData.text);
+          }
+          if (markerRoot.visible) {
+
+            const x = Math.round(markerRoot.rotation.x * 180 / Math.PI);
+            const y = Math.round(markerRoot.rotation.y * 180 / Math.PI);
+            const z = Math.round(markerRoot.rotation.z * 180 / Math.PI);
+            const text = this.makeTextSprite(`${markerRoot.name} x:${x} y:${y} z:${z}`);
+            text.position.copy(markerRoot.position);
+            markerRoot.add(text);
+            markerRoot.userData.text = text;
+          }
+        });
+      }
+    });
+
+  }
+
+  private makeTextSprite( message, parameters? ) {
+    if ( parameters === undefined ) { parameters = {}; }
+    const fontface = parameters.hasOwnProperty('fontface') ? parameters.fontface : 'Arial';
+    const fontsize = parameters.hasOwnProperty('fontsize') ? parameters.fontsize : 18;
+    const borderThickness = parameters.hasOwnProperty('borderThickness') ? parameters.borderThickness : 4;
+    const borderColor = parameters.hasOwnProperty('borderColor') ? parameters.borderColor : { r: 0, g: 0, b: 0, a: 1.0 };
+    const backgroundColor = parameters.hasOwnProperty('backgroundColor') ? parameters.backgroundColor : { r: 255, g: 255, b: 255, a: 1.0 };
+    const textColor = parameters.hasOwnProperty('textColor') ? parameters.textColor : { r: 0, g: 0, b: 0, a: 1.0 };
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.font = 'Bold ' + fontsize + 'px ' + fontface;
+    const metrics = context.measureText( message );
+    const textWidth = metrics.width;
+
+    context.fillStyle   = 'rgba(' + backgroundColor.r + ',' + backgroundColor.g + ',' + backgroundColor.b + ',' + backgroundColor.a + ')';
+    context.strokeStyle = 'rgba(' + borderColor.r + ',' + borderColor.g + ',' + borderColor.b + ',' + borderColor.a + ')';
+
+    context.lineWidth = borderThickness;
+
+    const roundRect = (c, x, y, w, h, r) => {
+      c.beginPath();
+      c.moveTo(x, y + r);
+      c.arc(x + r,   y + h - r, r, Math.PI, Math.PI / 2, 1);
+      c.arc(x + w - r, y + h - r, r, Math.PI / 2, 0, 1);
+      c.arc(x + w - r, y + r,   r, 0, Math.PI * 3 / 2, 1);
+      c.arc(x + r,   y + r,   r, Math.PI * 3 / 2, Math.PI, 1);
+      c.closePath();
+    };
+    roundRect(context, borderThickness / 2, borderThickness / 2, (textWidth + borderThickness) * 1.1, fontsize * 1.4 + borderThickness, 8);
+
+    context.fillStyle = 'rgba(' + textColor.r + ', ' + textColor.g + ', ' + textColor.b + ', 1.0)';
+    context.fillText( message, borderThickness, fontsize + borderThickness);
+
+    const texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+
+    const spriteMaterial = new THREE.SpriteMaterial( { map: texture} );
+    const sprite = new THREE.Sprite( spriteMaterial );
+    sprite.scale.set(0.5 * fontsize, 0.25 * fontsize, 0.75 * fontsize);
+    return sprite;
+  }
+
+
 }

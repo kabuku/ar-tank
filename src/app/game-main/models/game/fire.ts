@@ -28,7 +28,7 @@ export class Explosion extends THREE.Group {
   constructor(options: Partial<ExplosionOptions>) {
     super();
     this._burnOut = false;
-    this.options = Object.assign({
+    this.options = Object.assign({}, {
       debug: false,
       direction: -1,
       position: new THREE.Vector3(0, 0, 0),
@@ -46,7 +46,6 @@ export class Explosion extends THREE.Group {
       airSpeed: 19,
       speed: 500,
     }, options);
-    console.log(this.options);
     this.fireTime = this.options.fireTime;
     const plane = new THREE.PlaneBufferGeometry(1.5, 1.5);
     const fire = new Fire(plane, {...this.options, debug: false});

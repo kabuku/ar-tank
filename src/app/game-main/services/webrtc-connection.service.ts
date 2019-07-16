@@ -1,11 +1,11 @@
 import {Injectable} from '@angular/core';
 import {Observable, Subject} from 'rxjs';
 import {webSocket} from 'rxjs/webSocket';
-import {takeUntil} from 'rxjs/operators';
 
 interface SignalingMessage {
   data?: string;
   what: 'offer' | 'answer' | 'message' | 'call' | 'addIceCandidate' | 'iceCandidate' | 'iceCandidates';
+  options?: any;
 }
 
 @Injectable({
@@ -48,7 +48,13 @@ export class WebrtcConnectionService {
       openObserver: {
         next: value => {
           pc = this.createPeerConnection(targetHost, {onTrack, onIceCandidate});
-          ws.next({what: 'call'});
+          ws.next({
+            what: 'call',
+            options: {
+              force_hw_vcodec: false,
+              vformat: 10
+            }
+          });
         }
       },
       closeObserver: {

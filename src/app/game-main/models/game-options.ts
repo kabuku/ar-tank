@@ -8,7 +8,7 @@ interface WebcamArSourceOptions extends BaseArSourceOptions {
 
 interface ExternalSourceArSourceOptions extends BaseArSourceOptions {
   sourceType: 'video' | 'image';
-  sourceURL: string;
+  sourceUrl: string;
 }
 
 interface StreamArSourceOptions extends BaseArSourceOptions {

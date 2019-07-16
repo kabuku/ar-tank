@@ -25,7 +25,7 @@ export class Enemy extends THREE.Group {
     super();
     this.options = Object.assign({
       debug: false,
-      color: new THREE.Color(0xff0000),
+      color: new THREE.Color(0x00ff00),
       hitPoint: DEFAULT_HIT_POINT
     }, options);
 
@@ -46,7 +46,7 @@ export class Enemy extends THREE.Group {
   }
 
   private createBody(): THREE.Mesh {
-    const bodyMaterial = new THREE.MeshBasicMaterial({color: this.options.color});
+    const bodyMaterial = new THREE.MeshBasicMaterial({color: this.options.color, transparent: true, opacity: 0.5});
     const bodyGeometry = new THREE.BoxBufferGeometry();
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
     body.name = 'enemyBody';
@@ -58,6 +58,7 @@ export class Enemy extends THREE.Group {
   };
 
   hit(position: THREE.Vector3) {
+    console.log(`hit damage`);
     this._hitPoint -= 10;
 
   }

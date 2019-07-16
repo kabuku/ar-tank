@@ -51,7 +51,7 @@ export class SettingFormComponent implements OnInit {
       sourceType: ['', Validators.required],
       hostPath: [''],
       signalingPath: [''],
-      sourceURL: [''],
+      sourceUrl: [''],
       sourceWidth: [''],
       sourceHeight: [''],
       displayWidth: [''],
