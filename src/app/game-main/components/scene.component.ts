@@ -152,7 +152,17 @@ export class SceneComponent {
     onRenderFcts.push((delta, now) => {
       this.explosions.filter(ex => ex.burnOut).forEach(ex => ex.parent.remove(ex));
       this.explosions = this.explosions.filter(ex => !ex.burnOut);
-      this.explosions.forEach(explosion => explosion.update(delta, now));
+      this.explosions.forEach(explosion => {
+
+        if (explosion.parent !== scene) {
+          const cameraPos = camera.position.clone();
+          const localCameraPos = explosion.parent.worldToLocal(cameraPos);
+          explosion.lookAt(localCameraPos);
+        } else {
+          explosion.lookAt(camera.position);
+        }
+        explosion.update(delta, now);
+      });
     });
 
     onRenderFcts.push((delta, now) => {
@@ -379,23 +389,23 @@ export class SceneComponent {
         }
       });
 
-      if (this.gameOptions.debug) {
-        this.enemyMarkerRoots.map(markerRoot => {
-          if (markerRoot.userData && markerRoot.userData.text) {
-            markerRoot.remove(markerRoot.userData.text);
-          }
-          if (markerRoot.visible) {
-
-            const x = Math.round(markerRoot.rotation.x * 180 / Math.PI);
-            const y = Math.round(markerRoot.rotation.y * 180 / Math.PI);
-            const z = Math.round(markerRoot.rotation.z * 180 / Math.PI);
-            const text = this.makeTextSprite(`${markerRoot.name} x:${x} y:${y} z:${z}`);
-            text.position.copy(markerRoot.position);
-            markerRoot.add(text);
-            markerRoot.userData.text = text;
-          }
-        });
-      }
+      // if (this.gameOptions.debug) {
+      //   this.enemyMarkerRoots.map(markerRoot => {
+      //     if (markerRoot.userData && markerRoot.userData.text) {
+      //       markerRoot.remove(markerRoot.userData.text);
+      //     }
+      //     if (markerRoot.visible) {
+      //
+      //       const x = Math.round(markerRoot.rotation.x * 180 / Math.PI);
+      //       const y = Math.round(markerRoot.rotation.y * 180 / Math.PI);
+      //       const z = Math.round(markerRoot.rotation.z * 180 / Math.PI);
+      //       const text = this.makeTextSprite(`${markerRoot.name} x:${x} y:${y} z:${z}`);
+      //       text.position.copy(markerRoot.position);
+      //       markerRoot.add(text);
+      //       markerRoot.userData.text = text;
+      //     }
+      //   });
+      // }
     });
 
   }

@@ -3,7 +3,7 @@
   <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" formGroupName="arSourceOptions">
     <mat-form-field>
       <mat-label>タイプ</mat-label>
-      <mat-select required>
+      <mat-select formControlName="sourceType" required>
         <mat-option value="webcam">Webカメラ</mat-option>
         <mat-option value="video">動画ファイル</mat-option>
         <mat-option value="image">画像ファイル</mat-option>
@@ -44,6 +44,7 @@
       <input matInput formControlName="displayHeight">
     </mat-form-field>
     <div>
+      {{form.value | json}}
       <button mat-raised-button type="submit">設定</button>
     </div>
   </div>

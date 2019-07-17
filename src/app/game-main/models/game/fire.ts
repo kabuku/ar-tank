@@ -66,7 +66,6 @@ export class Explosion extends THREE.Group {
   }
 
   update = (delta: number, now: number) => {
-
     if (this.fireTime <= 0) {
       this._burnOut = true;
       this.fireTime = 0;
