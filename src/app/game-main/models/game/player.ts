@@ -31,6 +31,12 @@ export class Player extends THREE.Group {
     this.gun.rotation.set(0, 185 * Math.PI / 180, -2 * Math.PI / 180);
     this.gun.scale.set(0.2, 0.2, 0.2);
     this.add(this.gun);
+    const sight = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.1, 0.1),
+      new THREE.MeshBasicMaterial({map: sightTexture, side: THREE.DoubleSide, depthWrite: true, transparent: true})
+    );
+    sight.translateZ(-1);
+    this.add(sight);
   }
 
   update(delta, now) {

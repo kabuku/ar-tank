@@ -107,26 +107,6 @@ export class SceneComponent {
 
     // init scene and camera
     const {scene, debugCamera, camera} = this.initWorld(renderer2);
-    const fireWidth  = 0.5;
-    const fireHeight = 0.5;
-    const fireDepth  = 0.5;
-    const sliceSpacing = 0.5;
-    VolumetricFire.texturePath = "/assets/models/textures/";
-
-    const fire = new VolumetricFire(
-      fireWidth,
-      fireHeight,
-      fireDepth,
-      sliceSpacing,
-      debugCamera
-    );
-
-    fire.mesh.translateZ(-5);
-    scene.add( fire.mesh );
-    const start = new THREE.Clock();
-    onRenderFcts.push((delta, now) => {
-      fire.update(start.getElapsedTime());
-    });
 
     // init ar context, source
     const arToolkitContext = this.initAr(renderer, camera, onRenderFcts);
@@ -324,9 +304,8 @@ export class SceneComponent {
 
   private initRenderer() {
     const renderer = new THREE.WebGLRenderer({
-      antialias: true,
       alpha: true,
-      stencil: true
+      premultipliedAlpha: false,
     });
     renderer.setClearColor(new THREE.Color(0xcccccc), 0);
     renderer.setSize(640, 480);
