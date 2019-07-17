@@ -123,7 +123,7 @@ export class Gun extends THREE.Group {
 
     this.gunReactionTime -= delta * 1000;
 
-    if (this.options.gunReactionTime - this.gunReactionTime < 200) {
+    if (this.options.gunReactionTime - this.gunReactionTime < 10) {
       // 日が出てから反動が出るように少し待ち時間を入れる
       return;
     }

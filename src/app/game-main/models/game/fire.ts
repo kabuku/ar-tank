@@ -82,5 +82,5 @@ export class Explosion extends THREE.Group {
     const scale = this.fireTime / this.options.fireTime;
     this.scale.set(scale, scale, scale);
     this.light.intensity = this.options.fireLightIntensity * scale;
-  };
+  }
 }
