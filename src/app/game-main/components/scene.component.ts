@@ -3,12 +3,15 @@ import * as THREE from 'three';
 import {AxesHelper, CameraHelper, Raycaster} from 'three';
 import {Assets} from '../models/assets';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
-import {Gun} from '../models/game/gun';
 import {Enemy} from '../models/game/enemy';
 import * as Stats from 'stats.js';
 import {Explosion} from '../models/game/fire';
 import {GameOptions} from '../models/game-options';
+import {Player} from '../models/game/player';
+import particleFire from 'three-particle-fire';
+import * as VolumetricFire from 'volumetric-fire';
 
+particleFire.install( { THREE } );
 interface ThreeJSDebugWindow extends Window {
   scene: THREE.Scene;
   THREE: typeof THREE;
@@ -104,6 +107,26 @@ export class SceneComponent {
 
     // init scene and camera
     const {scene, debugCamera, camera} = this.initWorld(renderer2);
+    const fireWidth  = 0.5;
+    const fireHeight = 0.5;
+    const fireDepth  = 0.5;
+    const sliceSpacing = 0.5;
+    VolumetricFire.texturePath = "/assets/models/textures/";
+
+    const fire = new VolumetricFire(
+      fireWidth,
+      fireHeight,
+      fireDepth,
+      sliceSpacing,
+      debugCamera
+    );
+
+    fire.mesh.translateZ(-5);
+    scene.add( fire.mesh );
+    const start = new THREE.Clock();
+    onRenderFcts.push((delta, now) => {
+      fire.update(start.getElapsedTime());
+    });
 
     // init ar context, source
     const arToolkitContext = this.initAr(renderer, camera, onRenderFcts);
@@ -140,12 +163,9 @@ export class SceneComponent {
   }
 
   private setupPlayer(scene: THREE.Scene, renderer: THREE.Renderer, onRenderFcts, camera: THREE.Camera) {
-    const playerGun = new Gun(this.assets.gun, {debug: true});
-    playerGun.name = 'playerGun';
-    playerGun.position.set(0.116, -0.057, -0.317);
-    playerGun.rotation.set(0, 185 * Math.PI / 180, -2 * Math.PI / 180);
-    playerGun.scale.set(0.2, 0.2, 0.2);
-    scene.add(playerGun);
+    const player = new Player(this.assets.gun, this.assets.sight, camera, {debug: this.gameOptions.debug});
+
+    scene.add(player);
     renderer.domElement.addEventListener('click', () => this.stats.shoot = true);
 
     this.explosions = [];
@@ -156,12 +176,12 @@ export class SceneComponent {
     });
 
     onRenderFcts.push((delta, now) => {
-      playerGun.update(delta, now);
+      player.update(delta, now);
       if (!this.stats.shoot) {
         return;
       }
       this.stats.shoot = false;
-      if (!playerGun.shot()) {
+      if (!player.shot()) {
         return;
       }
       const ray = new Raycaster(camera.position, new THREE.Vector3(0, 0, -1));
@@ -296,9 +316,9 @@ export class SceneComponent {
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
-      premultipliedAlpha: false
+      stencil: true
     });
-    renderer.setClearColor(new THREE.Color('#ffffff'), 0);
+    renderer.setClearColor(new THREE.Color(0xcccccc), 0);
     renderer.setSize(640, 480);
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0px';
