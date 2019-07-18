@@ -1,4 +1,4 @@
-import {Component, OnInit, ViewChild} from '@angular/core';
+import {Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {Store} from '@ngrx/store';
 import {
   ActivatedRoute,
@@ -15,6 +15,7 @@ import {takeUntil} from 'rxjs/operators';
 import {WebrtcConnectionService} from '../services/webrtc-connection.service';
 import {GameOptions} from '../models/game-options';
 import {MainComponent} from '../components/main.component';
+import {GameOptionsService} from '../services/game-options.service';
 
 @Component({
   selector: 'at-main-page',
@@ -23,14 +24,16 @@ import {MainComponent} from '../components/main.component';
       [assets]="assets"
       [loading]="loading"
       [gameOptions]="gameOptions"
+      (gameOptionsChange)="onChangeGameOptions($event)"
     ></at-main>
   `,
   styles: []
 })
-export class MainPageComponent implements OnInit {
+export class MainPageComponent implements OnInit, OnDestroy {
   public assets: Assets;
   public loading = true;
   public gameOptions: GameOptions;
+  private worker: Worker;
   private subject = new Subject();
 
   @ViewChild(MainComponent, {static: false}) mainComponentRef: MainComponent;
@@ -39,38 +42,17 @@ export class MainPageComponent implements OnInit {
     private store: Store<any>,
     private router: Router,
     private webrtc: WebrtcConnectionService,
+    private gameOptionsService: GameOptionsService,
     activeRoute: ActivatedRoute) {
     activeRoute.data.subscribe((data: {assets: Assets}) => this.assets = data.assets);
     this.router.events.pipe(takeUntil(this.subject)).subscribe((routerEvent: Event) => this.checkRouterEvent(routerEvent));
-    this.gameOptions = {
-      debug: true,
-      gunColor: 'gun',
-      model: {
-        scale: 1,
-        mae: {x: 0, y: -0.5, z: 0},
-        ushiro: {x: 0, y: -0.5, z: 0},
-        hidari: {x: 0, y: -0.5, z: 0},
-        migi: {x: 0, y: -0.5, z: 0},
-      },
-      machineName: 'dalailama',
-      arSourceOptions: {
-        sourceType: 'image',
-        // signalingPath: 'wss://raspberrypi-dalailama.local:8080/stream/webrtc',
-        // hostPath: 'raspberrypi-dalailama.local',
-        sourceUrl: 'https://raspberrypi-dalailama.local:8080/stream/video.mjpeg',
-        displayHeight: 480,
-        displayWidth: 640,
-        sourceHeight: 240,
-        sourceWidth: 320
-        // sourceType: 'stream',
-        // signalingPath: 'wss://raspberrypi-dalailama.local:8080/stream/webrtc',
-        // hostPath: 'raspberrypi-dalailama.local',
-        // displayHeight: 480,
-        // displayWidth: 640,
-        // sourceHeight: 240,
-        // sourceWidth: 320
-      }
-    };
+    this.gameOptions = this.gameOptionsService.get();
+
+    this.worker = new Worker('../game-logic.worker', {type: 'module'});
+
+    this.worker.onmessage = ({data}) => {
+      // TODO
+    }
   }
 
   ngOnInit() {
@@ -86,5 +68,14 @@ export class MainPageComponent implements OnInit {
       this.loading = false;
       this.subject.complete();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.worker.terminate();
+  }
+
+  onChangeGameOptions(value: GameOptions) {
+    this.gameOptionsService.set(value);
+    this.gameOptions = value;
   }
 }

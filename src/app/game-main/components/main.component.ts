@@ -1,10 +1,9 @@
-import {Component, Input, OnInit, ViewChild} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, ViewChild} from '@angular/core';
 import {Assets} from '../models/assets';
 import {GameOptions} from '../models/game-options';
 import {SceneComponent} from './scene.component';
 import {MatDialog} from '@angular/material';
-import {SettingFormComponent} from './setting-form.component';
-import {SettingFormDialogComponent} from "./setting-form-dialog.component";
+import {SettingFormDialogComponent} from './setting-form-dialog.component';
 
 @Component({
   selector: 'at-main',
@@ -19,6 +18,8 @@ export class MainComponent implements OnInit {
   @Input() assets: Assets;
   @Input() gameOptions: GameOptions;
 
+  @Output() gameOptionsChange = new EventEmitter<GameOptions>();
+
   constructor(public dialog: MatDialog) {
   }
 
@@ -29,6 +30,7 @@ export class MainComponent implements OnInit {
     });
     dialogRef.afterClosed().subscribe(result => {
       this.gameOptions = result;
+      this.gameOptionsChange.emit(this.gameOptions);
     });
   }
 
