@@ -47,6 +47,31 @@ export class SettingFormComponent implements OnInit {
 
   form = this.fb.group({
     debug: [''],
+    gunColor: [''],
+    machineName: [''],
+    model : this.fb.group({
+      scale: [''],
+      mae: this.fb.group({
+        x: [''],
+        y: [''],
+        z: [''],
+      }),
+      migi: this.fb.group({
+        x: [''],
+        y: [''],
+        z: [''],
+      }),
+      hidari: this.fb.group({
+        x: [''],
+        y: [''],
+        z: [''],
+      }),
+      ushiro: this.fb.group({
+        x: [''],
+        y: [''],
+        z: [''],
+      }),
+    }),
     arSourceOptions: this.fb.group({
       sourceType: ['', Validators.required],
       hostPath: [''],

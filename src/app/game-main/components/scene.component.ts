@@ -9,7 +9,6 @@ import {Explosion} from '../models/game/fire';
 import {GameOptions} from '../models/game-options';
 import {Player} from '../models/game/player';
 import particleFire from 'three-particle-fire';
-import * as VolumetricFire from 'volumetric-fire';
 
 particleFire.install( { THREE } );
 interface ThreeJSDebugWindow extends Window {
@@ -305,10 +304,11 @@ export class SceneComponent {
   private initRenderer() {
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
+      antialias: true,
       premultipliedAlpha: false,
     });
     renderer.setClearColor(new THREE.Color(0xcccccc), 0);
-    renderer.setSize(640, 480);
+    renderer.setSize(this.gameOptions.arSourceOptions.displayWidth, this.gameOptions.arSourceOptions.displayHeight);
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0px';
     renderer.domElement.style.left = '0px';
@@ -319,39 +319,39 @@ export class SceneComponent {
       alpha: true
     });
     renderer2.setClearColor(new THREE.Color('lightgrey'), 1);
-    renderer2.setSize(640, 480);
+    renderer2.setSize(this.gameOptions.arSourceOptions.displayWidth, this.gameOptions.arSourceOptions.displayHeight);
     renderer2.domElement.style.position = 'absolute';
     renderer2.domElement.style.top = '0px';
-    renderer2.domElement.style.left = '640px';
+    renderer2.domElement.style.left = `${this.gameOptions.arSourceOptions.displayWidth}px`;
     this.rootDiv.nativeElement.appendChild(renderer2.domElement);
     return {renderer, renderer2};
   }
 
   private setupEnemy(scene: THREE.Scene, arToolkitContext: THREEx.ArToolkitContext, camera: THREE.Camera, onRenderFcts) {
-    const scale = 1.2;
+    const scale = this.gameOptions.model.scale || 1.2;
     const enemyMarkerOptions: EnemyMarker[] = [
       {
         name: 'enemy-mae',
         patternFile: 'pattern-mae.patt',
-        position: new THREE.Vector3(0, -0.5, 0),
+        position: new THREE.Vector3(this.gameOptions.model.mae.x, this.gameOptions.model.mae.y, this.gameOptions.model.mae.z),
         rotation: new THREE.Euler(-90 * Math.PI / 180, 0, 0)
       },
       {
         name: 'enemy-ushiro',
         patternFile: 'pattern-usiro.patt',
-        position: new THREE.Vector3(0, -0.5, 0),
+        position: new THREE.Vector3(this.gameOptions.model.ushiro.x, this.gameOptions.model.ushiro.y, this.gameOptions.model.ushiro.z),
         rotation: new THREE.Euler(-90 * Math.PI / 180, 180 * Math.PI / 180, 0)
       },
       {
         name: 'enemy-migi',
         patternFile: 'pattern-migi.patt',
-        position: new THREE.Vector3(0, -0.5, 0),
+        position: new THREE.Vector3(this.gameOptions.model.migi.x, this.gameOptions.model.migi.y, this.gameOptions.model.migi.z),
         rotation: new THREE.Euler(-90 * Math.PI / 180, -90 * Math.PI / 180, 0)
       },
       {
         name: 'enemy-hidari',
         patternFile: 'pattern-hidari.patt',
-        position: new THREE.Vector3(0, -0.5, 0),
+        position: new THREE.Vector3(this.gameOptions.model.hidari.x, this.gameOptions.model.hidari.y, this.gameOptions.model.hidari.z),
         rotation: new THREE.Euler(-90 * Math.PI / 180, 90 * Math.PI / 180, 0)
       },
     ];

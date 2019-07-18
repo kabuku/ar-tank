@@ -21,7 +21,8 @@ import {
   MatAutocompleteModule,
   MatCheckboxModule,
   MatRadioModule,
-  MatSliderModule
+  MatSliderModule,
+  MatDialogModule,
 } from '@angular/material';
 
 @NgModule({
@@ -45,7 +46,8 @@ import {
     MatChipsModule,
     MatAutocompleteModule,
     MatRadioModule,
-    MatSliderModule
+    MatSliderModule,
+    MatDialogModule,
   ],
   exports: [
     MatInputModule,
@@ -67,7 +69,8 @@ import {
     MatChipsModule,
     MatAutocompleteModule,
     MatRadioModule,
-    MatSliderModule
+    MatSliderModule,
+    MatDialogModule,
   ],
   providers: [
     { provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: { duration: 1000 } },

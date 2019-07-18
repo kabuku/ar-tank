@@ -21,7 +21,24 @@ interface StreamArSourceOptions extends BaseArSourceOptions {
 
 export type ArSourceOptions = ExternalSourceArSourceOptions | WebcamArSourceOptions | StreamArSourceOptions;
 
+interface Position {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface Model {
+  scale: number;
+  mae: Position;
+  migi: Position;
+  hidari: Position;
+  ushiro: Position;
+}
+
 export interface GameOptions {
   debug: boolean;
+  gunColor: 'gun'|'gun1';
+  machineName: string;
+  model: Model;
   arSourceOptions: ArSourceOptions;
 }

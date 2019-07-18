@@ -1,9 +1,17 @@
 import {Component, OnInit, ViewChild} from '@angular/core';
 import {Store} from '@ngrx/store';
-import {ActivatedRoute, Router, Event, NavigationStart, NavigationEnd, NavigationCancel, NavigationError} from '@angular/router';
-import {Observable, Subject} from 'rxjs';
+import {
+  ActivatedRoute,
+  Event,
+  NavigationCancel,
+  NavigationEnd,
+  NavigationError,
+  NavigationStart,
+  Router
+} from '@angular/router';
+import {Subject} from 'rxjs';
 import {Assets} from '../models/assets';
-import {map, takeUntil} from 'rxjs/operators';
+import {takeUntil} from 'rxjs/operators';
 import {WebrtcConnectionService} from '../services/webrtc-connection.service';
 import {GameOptions} from '../models/game-options';
 import {MainComponent} from '../components/main.component';
@@ -11,17 +19,11 @@ import {MainComponent} from '../components/main.component';
 @Component({
   selector: 'at-main-page',
   template: `
-    <div>
     <at-main
       [assets]="assets"
       [loading]="loading"
       [gameOptions]="gameOptions"
     ></at-main>
-      <div></div>
-      {{gameOptions | json}}
-      <at-setting-form [(gameOptions)]="gameOptions" (onConnect)="onConnect($event)"></at-setting-form>
-      <button mat-raised-button (click)="mainComponentRef.start()">開始</button>
-    </div>
   `,
   styles: []
 })
@@ -42,6 +44,15 @@ export class MainPageComponent implements OnInit {
     this.router.events.pipe(takeUntil(this.subject)).subscribe((routerEvent: Event) => this.checkRouterEvent(routerEvent));
     this.gameOptions = {
       debug: true,
+      gunColor: 'gun',
+      model: {
+        scale: 1,
+        mae: {x: 0, y: -0.5, z: 0},
+        ushiro: {x: 0, y: -0.5, z: 0},
+        hidari: {x: 0, y: -0.5, z: 0},
+        migi: {x: 0, y: -0.5, z: 0},
+      },
+      machineName: 'dalailama',
       arSourceOptions: {
         sourceType: 'image',
         // signalingPath: 'wss://raspberrypi-dalailama.local:8080/stream/webrtc',
@@ -60,35 +71,9 @@ export class MainPageComponent implements OnInit {
         // sourceWidth: 320
       }
     };
-
-    if (this.gameOptions.arSourceOptions.sourceType === 'stream') {
-      const {hostPath, signalingPath} = this.gameOptions.arSourceOptions;
-      this.webrtc.connect(hostPath, signalingPath).subscribe(stream => {
-        console.log(stream);
-        if (this.gameOptions.arSourceOptions.sourceType === 'stream') {
-          this.gameOptions.arSourceOptions.stream = stream;
-          this.mainComponentRef.start();
-        }
-      });
-    }
   }
 
   ngOnInit() {
-  }
-
-  onConnect(gameOptions: GameOptions) {
-    if (!gameOptions.arSourceOptions
-      || gameOptions.arSourceOptions.sourceType !== 'stream'
-      || !gameOptions.arSourceOptions.hostPath
-      || !gameOptions.arSourceOptions.signalingPath) {
-      return;
-    }
-    const {hostPath, signalingPath} = gameOptions.arSourceOptions;
-    this.webrtc.connect(hostPath, signalingPath).subscribe(stream => {
-      if (gameOptions.arSourceOptions.sourceType === 'stream') {
-        gameOptions.arSourceOptions.stream = stream;
-      }
-    });
   }
 
   private checkRouterEvent(routerEvent: Event) {

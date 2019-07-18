@@ -47,7 +47,7 @@ export class Enemy extends THREE.Group {
 
   private createBody(): THREE.Mesh {
     const bodyMaterial = new THREE.MeshBasicMaterial({color: this.options.color, transparent: true, opacity: 0.5});
-    const bodyGeometry = new THREE.BoxBufferGeometry();
+    const bodyGeometry = new THREE.BoxBufferGeometry(1.6805, 2, 2);
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
     body.name = 'enemyBody';
     return body;

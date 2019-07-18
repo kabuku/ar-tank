@@ -1,8 +1,18 @@
-<div *ngIf="!loading else loadingView">
-  <at-scene
-    [assets]="assets"
-    [gameOptions]="gameOptions"
-  ></at-scene>
+<div fxLayout="column" fxLayoutAlign="space-between">
+  <div fxLayout="row" fxLayoutAlign="end stretch">
+    <button mat-icon-button (click)="openSettingDialog()">
+      <mat-icon>settings</mat-icon>
+    </button>
+  </div>
+  <div class="container" *ngIf="!loading else loadingView">
+    <at-scene
+      [assets]="assets"
+      [gameOptions]="gameOptions"
+    ></at-scene>
+  </div>
+  <div>
+    <button mat-raised-button (click)="start()">開始</button>
+  </div>
 </div>
 <ng-template #loadingView>
   アセットを読み込んでるよよよ {{loading}}
