@@ -6632,6 +6632,11 @@ three-particle-fire@^0.0.0:
   resolved "https://registry.yarnpkg.com/three-particle-fire/-/three-particle-fire-0.0.0.tgz#d125ae307e31c1f5c8a3d80d5e715661362e5e23"
   integrity sha1-0SWuMH4xwfXIo9gNXnFWYTYuXiM=
 
+three-text2d@^0.5.3:
+  version "0.5.3"
+  resolved "https://registry.yarnpkg.com/three-text2d/-/three-text2d-0.5.3.tgz#742363ae334a12d6fe71847392fb00f311b6676d"
+  integrity sha512-y9WSyVzO2nQ/+ZUsvT4iqgeqRkjh4nhMwOdcNsUbCzgmpORhG8KQRxI4CokWoZYPesj/KwVUJlyzMtQRjo8o6g==
+
 three@*, three@^0.106.2:
   version "0.106.2"
   resolved "https://registry.yarnpkg.com/three/-/three-0.106.2.tgz#6752d304c470e4df230944ecd45325e7bf79e1f8"

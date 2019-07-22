@@ -1,4 +1,4 @@
-import {Component, ElementRef, Input, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, Input, ViewChild} from '@angular/core';
 import * as THREE from 'three';
 import {AxesHelper, CameraHelper, Raycaster} from 'three';
 import {Assets} from '../models/assets';
@@ -8,9 +8,15 @@ import * as Stats from 'stats.js';
 import {Explosion} from '../models/game/fire';
 import {GameOptions} from '../models/game-options';
 import {Player} from '../models/game/player';
-import particleFire from 'three-particle-fire';
+import {GameState} from '../models/game-state';
+import {PlayerState} from '../models/player-state';
 
-particleFire.install( { THREE } );
+import {SpriteText2D, textAlign} from 'three-text2d';
+
+const GAME_TIME_SEC = 65;
+const START_COUNTDOWN_SEC = 5;
+
+
 interface ThreeJSDebugWindow extends Window {
   scene: THREE.Scene;
   THREE: typeof THREE;
@@ -20,6 +26,11 @@ declare var window: ThreeJSDebugWindow;
 
 class GameStats {
   shoot: boolean;
+  damage: boolean;
+  damaging: boolean;
+  end: boolean;
+  start: boolean;
+  result: 'win' | 'loose';
 }
 
 interface EnemyMarker {
@@ -34,8 +45,51 @@ interface EnemyMarker {
   templateUrl: './scene.component.html',
   styleUrls: ['./scene.component.scss']
 })
-export class SceneComponent {
-  private animationFrameId: number;
+export class SceneComponent implements AfterViewInit {
+  get enemyState(): PlayerState {
+    return this._enemyState;
+  }
+
+  @Input()
+  set enemyState(value: PlayerState) {
+    this._enemyState = value;
+  }
+
+  get myState(): PlayerState {
+    return this._myState;
+  }
+
+  @Input()
+  set myState(value: PlayerState) {
+
+    if (value.status === 'shot') {
+      this.stats.shoot = true;
+      return;
+    } else if (value.status === 'hit') {
+      this.stats.damage = true;
+    }
+
+    this._myState = value;
+  }
+
+  get gameState(): GameState {
+    return this._gameState;
+  }
+
+  @Input()
+  set gameState(value: GameState) {
+
+    if (!this.gameState) {
+      this._gameState = value;
+      return;
+    }
+
+    if (this.gameState.status === 'prepared' && value.status === 'start') {
+      this.startTime = value.lastUpdateTime;
+      this.startStartCountdown();
+    }
+    this._gameState = value;
+  }
 
   @Input()
   set gameOptions(value: Partial<GameOptions>) {
@@ -46,7 +100,17 @@ export class SceneComponent {
     return this._gameOptions;
   }
 
+
+  constructor() {
+  }
+
   @Input() assets: Assets;
+
+  startCountdown = '';
+
+  timer = '';
+
+  private animationFrameId: number;
 
   // tslint:disable-next-line:variable-name
   private _gameOptions: Partial<GameOptions>;
@@ -66,7 +130,58 @@ export class SceneComponent {
 
   private enemyMarkerRoots: THREE.Group[];
 
-  constructor() {
+  private onRenderFcts: ((delta?: number, now?: number) => void)[];
+
+  private startTime: number;
+
+  private scene: THREE.Scene;
+
+  // tslint:disable-next-line:variable-name
+  private _gameState: GameState;
+  // tslint:disable-next-line:variable-name
+  private _myState: PlayerState;
+  // tslint:disable-next-line:variable-name
+  private _enemyState: PlayerState;
+
+  private startStartCountdown() {
+
+    const startCountdown = new SpriteText2D('5', {align: textAlign.center, font: '50px Arial', fillStyle: '#000000', antialias: true});
+    startCountdown.translateZ(-100);
+    this.scene.add(startCountdown);
+
+    const intervalId = setInterval(() => {
+
+      if (startCountdown.text === '開始') {
+        clearInterval(intervalId);
+        this.scene.remove(startCountdown);
+        this.startGameTimer();
+        return;
+      }
+
+      const dt = Math.floor((new Date().getTime() - this.startTime) / 1000);
+      startCountdown.text = dt >= START_COUNTDOWN_SEC ? '開始' : `${START_COUNTDOWN_SEC - dt}`;
+
+    }, 500);
+  }
+
+  private startGameTimer() {
+    const countdown = new SpriteText2D('60', {align: textAlign.center, font: '50px Arial', fillStyle: '#000000', antialias: true});
+    countdown.translateY(165);
+    countdown.translateZ(-500);
+    this.scene.add(countdown);
+    const intervalId = setInterval(() => {
+      const dt = Math.floor((new Date().getTime() - this.startTime) / 1000);
+      if (dt <= GAME_TIME_SEC) {
+        countdown.text = `${GAME_TIME_SEC - dt}`;
+      } else {
+        countdown.text = '0';
+        clearInterval(intervalId);
+      }
+    }, 200);
+  }
+
+  ngAfterViewInit(): void {
+    this.initGame();
   }
 
   start() {
@@ -91,9 +206,9 @@ export class SceneComponent {
     this.enemies = [];
     this.enemyMarkerRoots = [];
     this.stats = new GameStats();
-    const {renderer, renderer2} = this.initRenderer();
+    this.onRenderFcts = [];
 
-    const onRenderFcts = [];
+    const {renderer, renderer2} = this.initRenderer();
 
     if (this.gameOptions.debug) {
       const stats = new Stats();
@@ -101,24 +216,27 @@ export class SceneComponent {
       stats.dom.style.top = '0px';
       stats.dom.style.zIndex = '100';
       this.rootDiv.nativeElement.appendChild(stats.dom);
-      onRenderFcts.push(() => stats.update());
+      this.onRenderFcts.push(() => stats.update());
     }
 
     // init scene and camera
     const {scene, debugCamera, camera} = this.initWorld(renderer2);
+    this.scene = scene;
 
     // init ar context, source
-    const arToolkitContext = this.initAr(renderer, camera, onRenderFcts);
+    const arToolkitContext = this.initAr(renderer, camera);
 
     // setup enemy
-    this.setupEnemy(scene, arToolkitContext, camera, onRenderFcts);
-    //////////////////////////////////////////////////////////////////////////////////
-    // 		add an object in the scene
-    //////////////////////////////////////////////////////////////////////////////////
-    this.setupPlayer(scene, renderer, onRenderFcts, camera);
+    this.setupEnemy(scene, arToolkitContext, camera);
+
+    // setup explosions
+    this.setupExplosions(scene, camera);
+
+    // setup player
+    this.setupPlayer(scene, renderer, camera);
 
     // render the scene
-    onRenderFcts.push(() => {
+    this.onRenderFcts.push(() => {
       renderer.render(scene, camera);
       renderer2.render(scene, debugCamera);
     });
@@ -133,22 +251,14 @@ export class SceneComponent {
       const deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
       lastTimeMsec = nowMsec;
       // call each update function
-      onRenderFcts.forEach(onRenderFct => {
-        onRenderFct(deltaMsec / 1000, nowMsec / 1000);
-      });
+      this.onRenderFcts.forEach(onRenderFct => onRenderFct(deltaMsec / 1000, nowMsec / 1000));
     };
     this.animationFrameId = requestAnimationFrame(animate);
     this.gameInitialized = true;
   }
 
-  private setupPlayer(scene: THREE.Scene, renderer: THREE.Renderer, onRenderFcts, camera: THREE.Camera) {
-    const player = new Player(this.assets.gun, this.assets.sight, camera, {debug: this.gameOptions.debug});
-
-    scene.add(player);
-    renderer.domElement.addEventListener('click', () => this.stats.shoot = true);
-
-    this.explosions = [];
-    onRenderFcts.push((delta, now) => {
+  private setupExplosions(scene, camera) {
+    this.onRenderFcts.push((delta, now) => {
       this.explosions.filter(ex => ex.burnOut).forEach(ex => ex.parent.remove(ex));
       this.explosions = this.explosions.filter(ex => !ex.burnOut);
       this.explosions.forEach(explosion => {
@@ -163,9 +273,35 @@ export class SceneComponent {
         explosion.update(delta, now);
       });
     });
+  }
 
-    onRenderFcts.push((delta, now) => {
-      player.update(delta, now);
+  private setupPlayer(scene: THREE.Scene, renderer: THREE.Renderer, camera: THREE.Camera) {
+    const player = new Player(this.assets.gun, this.assets.sight, camera, {debug: this.gameOptions.debug});
+
+    scene.add(player);
+    renderer.domElement.addEventListener('click', () => this.stats.shoot = true);
+
+    this.onRenderFcts.push((delta, now) => player.update(delta, now));
+
+    let lastDamageTime = 0;
+    this.onRenderFcts.push((delta, now) => {
+
+      if (now - lastDamageTime > 3) {
+        this.stats.damaging = false;
+      }
+
+      if (!this.stats.damage) {
+        return;
+      }
+
+      this.stats.damaging = true;
+      lastDamageTime = now;
+      player.damage(now, this.myState.hp);
+    });
+
+
+    this.onRenderFcts.push(() => {
+
       if (!this.stats.shoot) {
         return;
       }
@@ -221,7 +357,7 @@ export class SceneComponent {
     });
   }
 
-  private initAr(renderer, camera, onRenderFcts) {
+  private initAr(renderer, camera) {
     let arToolkitSource: THREEx.ArToolkitSource;
 
     if (this._gameOptions.arSourceOptions.sourceType !== 'stream') {
@@ -252,13 +388,10 @@ export class SceneComponent {
       }
     }
 
-////////////////////////////////////////////////////////////////////////////////
-//          initialize arToolkitContext
-////////////////////////////////////////////////////////////////////////////////
     // create atToolkitContext
     const arToolkitContext = new THREEx.ArToolkitContext({
-      debug: true,
-      cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '../data/data/camera_para.dat',
+      debug: this.gameOptions.debug,
+      cameraParametersUrl: '/assets/data/data/camera_para.dat',
       detectionMode: 'mono',
       patternRatio: 0.8
     } as Partial<THREEx.ArToolkitContextOptions>);
@@ -269,7 +402,7 @@ export class SceneComponent {
     });
 
     // update artoolkit on every frame
-    onRenderFcts.push(() => {
+    this.onRenderFcts.push(() => {
       if (arToolkitSource.ready === false) {
         return;
       }
@@ -327,7 +460,7 @@ export class SceneComponent {
     return {renderer, renderer2};
   }
 
-  private setupEnemy(scene: THREE.Scene, arToolkitContext: THREEx.ArToolkitContext, camera: THREE.Camera, onRenderFcts) {
+  private setupEnemy(scene: THREE.Scene, arToolkitContext: THREEx.ArToolkitContext, camera: THREE.Camera) {
     const scale = this.gameOptions.model.scale || 1.2;
     const enemyMarkerOptions: EnemyMarker[] = [
       {
@@ -364,19 +497,19 @@ export class SceneComponent {
         type: 'pattern',
         patternUrl: `/assets/marker/${em.patternFile}?${new Date().getTime()}`
       });
-      const enemy = new Enemy(this.assets.gun2, {debug: true});
+      const enemy = new Enemy(this.assets.gun2, this.enemyState.image, {debug: true});
       enemy.position.set(em.position.x * scale, em.position.y * scale, em.position.z * scale);
       enemy.rotation.copy(em.rotation);
       enemy.scale.set(scale, scale, scale);
       markerRoot.add(enemy);
-      onRenderFcts.push(enemy.update);
+      this.onRenderFcts.push(enemy.update);
       this.enemies.push(enemy);
       this.hitTargets.push(markerRoot);
       this.enemyMarkerRoots.push(markerRoot);
     });
 
     // control enemy visibility
-    onRenderFcts.push(() => {
+    this.onRenderFcts.push(() => {
       const visibleMarkers = this.enemyMarkerRoots.filter(markerRoot => markerRoot.visible);
 
       if (visibleMarkers.length < 2) {
@@ -409,22 +542,25 @@ export class SceneComponent {
 
   }
 
-  private makeTextSprite( message, parameters? ) {
-    if ( parameters === undefined ) { parameters = {}; }
+  // from https://stackoverflow.com/questions/23514274/three-js-2d-text-sprite-labels
+  private makeTextSprite(message, parameters?): THREE.Sprite {
+    if (parameters === undefined) {
+      parameters = {};
+    }
     const fontface = parameters.hasOwnProperty('fontface') ? parameters.fontface : 'Arial';
     const fontsize = parameters.hasOwnProperty('fontsize') ? parameters.fontsize : 18;
-    const borderThickness = parameters.hasOwnProperty('borderThickness') ? parameters.borderThickness : 4;
-    const borderColor = parameters.hasOwnProperty('borderColor') ? parameters.borderColor : { r: 0, g: 0, b: 0, a: 1.0 };
-    const backgroundColor = parameters.hasOwnProperty('backgroundColor') ? parameters.backgroundColor : { r: 255, g: 255, b: 255, a: 1.0 };
-    const textColor = parameters.hasOwnProperty('textColor') ? parameters.textColor : { r: 0, g: 0, b: 0, a: 1.0 };
+    const borderThickness = parameters.hasOwnProperty('borderThickness') ? parameters.borderThickness : 0;
+    const borderColor = parameters.hasOwnProperty('borderColor') ? parameters.borderColor : {r: 0, g: 0, b: 0, a: 1.0};
+    const backgroundColor = parameters.hasOwnProperty('backgroundColor') ? parameters.backgroundColor : {r: 255, g: 255, b: 255, a: 1.0};
+    const textColor = parameters.hasOwnProperty('textColor') ? parameters.textColor : {r: 0, g: 0, b: 0, a: 1.0};
 
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     context.font = 'Bold ' + fontsize + 'px ' + fontface;
-    const metrics = context.measureText( message );
+    const metrics = context.measureText(message);
     const textWidth = metrics.width;
 
-    context.fillStyle   = 'rgba(' + backgroundColor.r + ',' + backgroundColor.g + ',' + backgroundColor.b + ',' + backgroundColor.a + ')';
+    context.fillStyle = 'rgba(' + backgroundColor.r + ',' + backgroundColor.g + ',' + backgroundColor.b + ',' + backgroundColor.a + ')';
     context.strokeStyle = 'rgba(' + borderColor.r + ',' + borderColor.g + ',' + borderColor.b + ',' + borderColor.a + ')';
 
     context.lineWidth = borderThickness;
@@ -432,23 +568,23 @@ export class SceneComponent {
     const roundRect = (c, x, y, w, h, r) => {
       c.beginPath();
       c.moveTo(x, y + r);
-      c.arc(x + r,   y + h - r, r, Math.PI, Math.PI / 2, 1);
+      c.arc(x + r, y + h - r, r, Math.PI, Math.PI / 2, 1);
       c.arc(x + w - r, y + h - r, r, Math.PI / 2, 0, 1);
-      c.arc(x + w - r, y + r,   r, 0, Math.PI * 3 / 2, 1);
-      c.arc(x + r,   y + r,   r, Math.PI * 3 / 2, Math.PI, 1);
+      c.arc(x + w - r, y + r, r, 0, Math.PI * 3 / 2, 1);
+      c.arc(x + r, y + r, r, Math.PI * 3 / 2, Math.PI, 1);
       c.closePath();
     };
     roundRect(context, borderThickness / 2, borderThickness / 2, (textWidth + borderThickness) * 1.1, fontsize * 1.4 + borderThickness, 8);
 
     context.fillStyle = 'rgba(' + textColor.r + ', ' + textColor.g + ', ' + textColor.b + ', 1.0)';
-    context.fillText( message, borderThickness, fontsize + borderThickness);
+    context.fillText(message, borderThickness, fontsize + borderThickness);
 
     const texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
 
-    const spriteMaterial = new THREE.SpriteMaterial( { map: texture} );
-    const sprite = new THREE.Sprite( spriteMaterial );
-    sprite.scale.set(0.5 * fontsize, 0.25 * fontsize, 0.75 * fontsize);
+    const spriteMaterial = new THREE.SpriteMaterial({map: texture});
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(0.002 * canvas.width, 0.0025 * canvas.height, 1);
     return sprite;
   }
 

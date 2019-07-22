@@ -21,11 +21,11 @@ export class Enemy extends THREE.Group {
     return this._hitPoint;
   }
 
-  constructor(gun: THREE.Group, options?: Partial<EnemyOptions>) {
+  constructor(gun: THREE.Group, image: string, options?: Partial<EnemyOptions>) {
     super();
     this.options = Object.assign({
       debug: false,
-      color: new THREE.Color(0x00ff00),
+      color: new THREE.Color(0x000000),
       hitPoint: DEFAULT_HIT_POINT
     }, options);
 
@@ -34,7 +34,7 @@ export class Enemy extends THREE.Group {
     this.gun.name = 'enemyGun';
     this.gun.position.set(-0.533, 0, 0.423);
     this.add(this.gun);
-    const body = this.createBody();
+    const body = this.createBody(image);
     this.add(body);
 
     this.hitMesh = new THREE.Mesh(body.geometry.clone(), new THREE.MeshBasicMaterial({transparent: true, opacity: 0}));
@@ -45,12 +45,31 @@ export class Enemy extends THREE.Group {
     this.gun.shot();
   }
 
-  private createBody(): THREE.Mesh {
-    const bodyMaterial = new THREE.MeshBasicMaterial({color: this.options.color, transparent: true, opacity: 0.5});
-    const bodyGeometry = new THREE.BoxBufferGeometry(1.6805, 2, 2);
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+  private createBody(image: string): THREE.Mesh {
+    const black = new THREE.MeshBasicMaterial({color: this.options.color});
+    const materials = [
+      black,
+      black,
+      black,
+      black,
+      this.createFace(image),
+      black,
+      black
+    ];
+
+    const bodyGeometry = new THREE.BoxBufferGeometry(1.6805, 3, 3);
+    const body = new THREE.Mesh(bodyGeometry, materials);
     body.name = 'enemyBody';
     return body;
+  }
+
+  private createFace(image: string): THREE.Material {
+    const img = document.createElement('img');
+    img.src = image;
+    const texture = new THREE.Texture(img);
+    texture.needsUpdate = true;
+    const faceMaterial = new THREE.MeshBasicMaterial({map: texture, overdraw: 1});
+    return faceMaterial;
   }
 
   update = (delta: number, now: number) => {

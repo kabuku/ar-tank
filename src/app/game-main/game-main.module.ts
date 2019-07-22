@@ -10,10 +10,11 @@ import {ReactiveFormsModule} from '@angular/forms';
 import { SettingFormComponent } from './components/setting-form.component';
 import {FlexLayoutModule} from '@angular/flex-layout';
 import { SettingFormDialogComponent } from './components/setting-form-dialog.component';
+import { PrepareComponent } from './components/prepare.component';
 
 
 @NgModule({
-  declarations: [MainPageComponent, MainComponent, SceneComponent, SettingFormComponent, SettingFormDialogComponent],
+  declarations: [MainPageComponent, MainComponent, SceneComponent, SettingFormComponent, SettingFormDialogComponent, PrepareComponent],
   imports: [
     CommonModule,
     GameMainRoutingModule,

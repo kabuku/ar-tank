@@ -4,6 +4,9 @@ import {GameOptions} from '../models/game-options';
 import {SceneComponent} from './scene.component';
 import {MatDialog} from '@angular/material';
 import {SettingFormDialogComponent} from './setting-form-dialog.component';
+import {PlayerState} from '../models/player-state';
+import {UpdatePlayerStateParams} from '../services/game-logic.service';
+import {GameState, GameStatus} from '../models/game-state';
 
 @Component({
   selector: 'at-main',
@@ -17,8 +20,14 @@ export class MainComponent implements OnInit {
   @Input() loading: boolean;
   @Input() assets: Assets;
   @Input() gameOptions: GameOptions;
+  @Input() gameState: GameState;
+  @Input() myState: PlayerState;
+  @Input() enemyState: PlayerState;
 
   @Output() gameOptionsChange = new EventEmitter<GameOptions>();
+  @Output() updateGameStatus = new EventEmitter<GameStatus>();
+  @Output() updateMyStatus = new EventEmitter<UpdatePlayerStateParams>();
+  @Output() updateEnemyStatus = new EventEmitter<UpdatePlayerStateParams>();
 
   constructor(public dialog: MatDialog) {
   }
@@ -35,7 +44,7 @@ export class MainComponent implements OnInit {
   }
 
   start() {
-    this.sceneRef.start();
+    this.updateGameStatus.emit('start');
   }
 
   ngOnInit() {

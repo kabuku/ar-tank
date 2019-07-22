@@ -1,19 +1,39 @@
-<div fxLayout="column" fxLayoutAlign="space-between">
-  <div fxLayout="row" fxLayoutAlign="end stretch">
+<div fxLayout="column" fxLayoutAlign="space-between" fxLayoutGap="16px">
+  <div fxLayout="row" fxLayoutAlign="end stretch" fxLayoutGap="8px">
+    <div *ngIf="gameState">GameStatus: {{gameState.status}}</div>
+    <div *ngIf="myState">MyStatus: {{myState.status}}</div>
+    <div *ngIf="enemyState">EnemyStatus: {{enemyState.status}}</div>
     <button mat-icon-button (click)="openSettingDialog()">
       <mat-icon>settings</mat-icon>
     </button>
   </div>
-  <div class="container" *ngIf="!loading else loadingView">
-    <at-scene
-      [assets]="assets"
-      [gameOptions]="gameOptions"
-    ></at-scene>
-  </div>
-  <div>
-    <button mat-raised-button (click)="start()">開始</button>
+  <div *ngIf="!loading && gameState && myState && enemyState else loadingView" [ngSwitch]="gameState.status">
+    <div *ngSwitchCase="'wait'">
+      <button mat-raised-button (click)="updateGameStatus.emit('prepare')">New GAME</button>
+    </div>
+    <div *ngSwitchCase="'prepare'" fxLayout="column" fxLayoutGap="16px">
+      <at-prepare
+        [myState]="myState"
+        (finishSetup)="updateMyStatus.emit({status: 'prepared', value: $event})"
+        (canceled)="updateMyStatus.emit({status: 'prepare', value: undefined})"
+      ></at-prepare>
+      <button mat-raised-button *ngIf="myState.status === 'prepared' && enemyState.status !== 'prepared'" disabled>対戦相手が準備中...</button>
+      <button mat-raised-button *ngIf="myState.status === 'prepared' && enemyState.status === 'prepared'" (click)="updateGameStatus.emit('prepared')">対戦準備完了！</button>
+    </div>
+    <div *ngSwitchDefault>
+      <div class="container">
+        <at-scene
+          [assets]="assets"
+          [gameOptions]="gameOptions"
+          [gameState]="gameState"
+          [myState]="myState"
+          [enemyState]="enemyState"
+        ></at-scene>
+      </div>
+      <button mat-raised-button (click)="start()">開始</button>
+    </div>
   </div>
 </div>
 <ng-template #loadingView>
-  アセットを読み込んでるよよよ {{loading}}
+  アセットを読み込んでるよ {{loading}}
 </ng-template>

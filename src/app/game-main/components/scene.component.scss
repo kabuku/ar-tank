@@ -1,0 +1,33 @@
+.damage {
+  animation: damage 0.1s ease-out 8;
+}
+
+.timer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: auto;
+}
+.startCountdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateY(-50%) translateX(-50%);
+  margin: auto;
+}
+
+@keyframes damage {
+  0% {
+    transform: translate(0px, 0px) rotateZ(0deg)
+  }
+  33% {
+    transform: translate(2px, 2px) rotateZ(2deg)
+  }
+  66% {
+    transform: translate(0px, 2px) rotateZ(0deg)
+  }
+  100% {
+    transform: translate(2px, 0px) rotateZ(-2deg)
+  }
+}

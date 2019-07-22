@@ -1,0 +1,14 @@
+<div fxLayout="column" fxLayoutGap="16px">
+  <div fxLayout="row" fxLayoutAlign="start start" class="videoContainer"  fxLayoutGap="8px">
+    <video class="video" #video autoplay playsinline></video>
+    <canvas class="videoCanvas" #videoCanvas></canvas>
+    <canvas class="snapshotCanvas" #snapshotCanvas></canvas>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="start start"  fxLayoutGap="8px">
+    <button mat-raised-button *ngIf="myState.status !== 'prepared'" (click)="takePhoto()">写真をとる</button>
+    <button mat-raised-button color="primary" *ngIf="captureData && myState.status === 'prepare'" [disabled]="finished" (click)="finishPrepared()">
+      準備完了<mat-icon *ngIf="!myState.image"><mat-spinner diameter="20"></mat-spinner></mat-icon>
+    </button>
+    <button mat-raised-button *ngIf="myState.status === 'prepared'" (click)="cancel()">撮り直し</button>
+  </div>
+</div>

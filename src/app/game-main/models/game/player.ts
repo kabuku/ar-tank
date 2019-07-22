@@ -14,8 +14,7 @@ interface PlayerOptions {
 export class Player extends THREE.Group {
 
   private readonly gun: Gun;
-  // tslint:disable-next-line:variable-name
-  private _hitPoint: number;
+  private hp: number;
 
   constructor(gun: THREE.Group, sightTexture: THREE.Texture, private camera: THREE.Camera, private options: Partial<PlayerOptions>) {
     super();
@@ -24,7 +23,7 @@ export class Player extends THREE.Group {
       hitPoint: DEFAULT_HIT_POINT
     }, options);
 
-    this._hitPoint = this.options.hitPoint;
+    this.hp = this.options.hitPoint;
     this.gun = new Gun(gun.clone(), { debug: this.options.debug });
     this.gun.name = 'playerGun';
     this.gun.position.set(0.116, -0.057, -0.317);
@@ -45,5 +44,10 @@ export class Player extends THREE.Group {
 
   shot(): boolean {
     return this.gun.shot();
+  }
+
+  damage(now: number, hp: number) {
+    this.hp = hp;
+    // TODO damage
   }
 }
