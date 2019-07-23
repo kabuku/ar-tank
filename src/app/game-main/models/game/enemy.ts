@@ -76,9 +76,21 @@ export class Enemy extends THREE.Group {
     this.gun.update(delta, now);
   };
 
-  hit(position: THREE.Vector3) {
-    console.log(`hit damage`);
-    this._hitPoint -= 10;
+  damage(hp: number) {
+    this._hitPoint = hp;
+  }
+  endGame(win: boolean) {
+    if (win) {
+      this.win();
+    } else {
+      this.loose();
+    }
+  }
+  private loose() {
 
   }
+  private win() {
+
+  }
+
 }

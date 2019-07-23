@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {Gun} from './gun';
+import {SpriteText2D, textAlign} from 'three-text2d';
 
 const DEFAULT_HIT_POINT = 100;
 
@@ -46,8 +47,34 @@ export class Player extends THREE.Group {
     return this.gun.shot();
   }
 
+  hit() {
+    const hitText = new SpriteText2D('Hit!', {align: textAlign.center, font: '50px Arial', antialias: true, fillStyle: '#0000ff'});
+    hitText.translateZ(-500);
+    this.add(hitText);
+    setTimeout(() => this.remove(hitText), 1000);
+  }
+
   damage(now: number, hp: number) {
     this.hp = hp;
+    const damageText = new SpriteText2D('Damage!', {align: textAlign.center, font: '50px Arial', antialias: true, fillStyle: '#ff0000'});
+    damageText.translateZ(-500);
+    this.add(damageText);
+    setTimeout(() => this.remove(damageText), 1000);
+
     // TODO damage
   }
+  endGame(win: boolean) {
+    if (win) {
+      this.win();
+    } else {
+      this.loose();
+    }
+  }
+  private loose() {
+
+  }
+  private win() {
+
+  }
+
 }

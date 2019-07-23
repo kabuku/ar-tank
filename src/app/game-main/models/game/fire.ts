@@ -1,7 +1,5 @@
 import * as THREE from 'three';
 import {Fire, FireOptions} from 'three/examples/jsm/objects/Fire';
-import {SpotLight} from 'three';
-import {del} from 'selenium-webdriver/http';
 
 const DEFAULT_FIRE_TIME = 500;
 const DEFAULT_FIRE_LIGHT_INTENSITY = 10;
@@ -12,6 +10,7 @@ interface ExplosionOptions extends FireOptions {
   position: THREE.Vector3;
   fireLightIntensity: number;
   fireTime: number;
+  makeLight: boolean;
 }
 
 export class Explosion extends THREE.Group {
@@ -23,7 +22,7 @@ export class Explosion extends THREE.Group {
   public get burnOut(): boolean {
     return this._burnOut;
   }
-  private light: THREE.Light;
+  private readonly light: THREE.Light;
 
   constructor(options: Partial<ExplosionOptions>) {
     super();
@@ -45,6 +44,7 @@ export class Explosion extends THREE.Group {
       drag: 1,
       airSpeed: 19,
       speed: 500,
+      makeLight: false,
     }, options);
     this.fireTime = this.options.fireTime;
     const plane = new THREE.PlaneBufferGeometry(1.5, 1.5);
@@ -55,11 +55,13 @@ export class Explosion extends THREE.Group {
     fire.addSource(0.5, 0.1, 0.1, 1.0, 0.0, 1.0);
     fire.position.y -= new THREE.Box3().setFromObject(fire).min.y + 0.05;
     this.add(fire);
-    const light = new THREE.PointLight(0xFFFFFF, this.options.fireLightIntensity, 1, 1.0);
-    light.position.set(0.5, 0.5, -1.0);
-    light.name = 'fireLight';
-    this.light = light;
-    this.add(light);
+    if (this.options.makeLight) {
+      const light = new THREE.PointLight(0xFFFFFF, this.options.fireLightIntensity, 1, 1.0);
+      light.position.set(0.5, 0.5, -1.0);
+      light.name = 'fireLight';
+      this.light = light;
+      this.add(light);
+    }
     if (this.options.debug) {
       this.add(new THREE.AxesHelper());
     }
@@ -81,6 +83,8 @@ export class Explosion extends THREE.Group {
     }
     const scale = this.fireTime / this.options.fireTime;
     this.scale.set(scale, scale, scale);
-    this.light.intensity = this.options.fireLightIntensity * scale;
+    if (this.light) {
+      this.light.intensity = this.options.fireLightIntensity * scale;
+    }
   }
 }

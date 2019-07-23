@@ -18,7 +18,7 @@
         (canceled)="updateMyStatus.emit({status: 'prepare', value: undefined})"
       ></at-prepare>
       <button mat-raised-button *ngIf="myState.status === 'prepared' && enemyState.status !== 'prepared'" disabled>対戦相手が準備中...</button>
-      <button mat-raised-button *ngIf="myState.status === 'prepared' && enemyState.status === 'prepared'" (click)="updateGameStatus.emit('prepared')">対戦準備完了！</button>
+      <button mat-raised-button color="primary" *ngIf="myState.status === 'prepared' && enemyState.status === 'prepared'" (click)="updateGameStatus.emit('prepared')">対戦準備完了！</button>
     </div>
     <div *ngSwitchDefault>
       <div class="container">
@@ -30,7 +30,7 @@
           [enemyState]="enemyState"
         ></at-scene>
       </div>
-      <button mat-raised-button (click)="start()">開始</button>
+      <button mat-raised-button color="primary" (click)="start()" *ngIf="gameState.status === 'prepared'">開始</button>
     </div>
   </div>
 </div>
