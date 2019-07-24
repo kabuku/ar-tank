@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {Gun} from './gun';
+import {Explosion} from './fire';
 
 const DEFAULT_HIT_POINT = 100;
 
@@ -14,12 +15,8 @@ export class Enemy extends THREE.Group {
   private readonly gun: Gun;
   private options: EnemyOptions;
   public hitMesh: THREE.Mesh;
+  private hp: number;
   // tslint:disable-next-line:variable-name
-  private _hitPoint: number;
-
-  public get hitPoint(): number {
-    return this._hitPoint;
-  }
 
   constructor(gun: THREE.Group, image: string, options?: Partial<EnemyOptions>) {
     super();
@@ -29,7 +26,7 @@ export class Enemy extends THREE.Group {
       hitPoint: DEFAULT_HIT_POINT
     }, options);
 
-    this._hitPoint = this.options.hitPoint;
+    this.hp = this.options.hitPoint;
     this.gun = new Gun(gun.clone(), {debug: this.options.debug, direction: -1});
     this.gun.name = 'enemyGun';
     this.gun.position.set(-0.533, 0, 0.423);
@@ -57,7 +54,7 @@ export class Enemy extends THREE.Group {
       black
     ];
 
-    const bodyGeometry = new THREE.BoxBufferGeometry(1.6805, 3, 3);
+    const bodyGeometry = new THREE.BoxBufferGeometry(1, 2.08, 1.94);
     const body = new THREE.Mesh(bodyGeometry, materials);
     body.name = 'enemyBody';
     return body;
@@ -77,16 +74,32 @@ export class Enemy extends THREE.Group {
   };
 
   damage(hp: number) {
-    this._hitPoint = hp;
-  }
-  endGame(win: boolean) {
-    if (win) {
-      this.win();
-    } else {
-      this.loose();
+    this.hp = hp;
+    const damageRate = hp / this.options.hitPoint;
+    if (damageRate <= 0.8) {
+
+    } else if (damageRate <= 0.5) {
+
+    } else if (damageRate <= 0.2) {
+
+    } else if (damageRate <= 0.1) {
+
     }
   }
-  private loose() {
+  endGame(result: 'win'|'draw'|'lose') {
+    if (result === 'win') {
+      this.win();
+    } else if (result === 'draw') {
+      this.draw();
+    } else {
+      this.lose();
+    }
+  }
+  private draw() {
+
+  }
+
+  private lose() {
 
   }
   private win() {

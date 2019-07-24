@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, EventEmitter, Input, Output, ViewChild} from '@angular/core';
 import {PlayerState} from '../models/player-state';
 
 declare var window: ShapeDetectionWindow;
@@ -11,11 +11,13 @@ declare var window: ShapeDetectionWindow;
 export class PrepareComponent implements AfterViewInit {
 
   @Input() myState: PlayerState;
+  @Input() deviceIndex: number;
   @Output() finishSetup = new EventEmitter<string>();
   @Output() canceled = new EventEmitter();
 
   @ViewChild('video', {static: true})
   private videoRef: ElementRef;
+  private animationFrameId: number;
 
   private get video(): HTMLVideoElement {
     return this.videoRef.nativeElement;
@@ -40,6 +42,8 @@ export class PrepareComponent implements AfterViewInit {
   takingPhoto: boolean;
   captureData: string;
   finished: boolean;
+  devices: MediaDeviceInfo[];
+  videoStarted: boolean;
 
   constructor() {
   }
@@ -47,9 +51,26 @@ export class PrepareComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     this.faceDetector = new FaceDetector({fastMode: true, maxDetectedFaces: 1});
 
-    navigator.mediaDevices.getUserMedia({audio: false, video: true})
+    navigator.mediaDevices
+      .enumerateDevices()
+      .then(devices => devices.filter(device => device.kind === 'videoinput'))
+      .then(devices => this.devices = devices)
+      .then(() => {
+
+        if (this.devices.length >= this.deviceIndex + 1) {
+          return this.devices[this.deviceIndex];
+        } else {
+          return this.devices[0];
+        }
+      }).then(device =>
+      navigator.mediaDevices.getUserMedia({
+        audio: false, video: {
+          deviceId: device.deviceId
+        }
+      }))
       .then(stream => this.video.srcObject = stream)
       .then(() => this.video.play())
+      .then(() => this.videoStarted = true)
       .then(() => this.imageCapture = new ImageCapture((this.video.srcObject as MediaStream).getVideoTracks()[0]))
       .then(() => this.detectFaceLoop());
   }
@@ -92,11 +113,11 @@ export class PrepareComponent implements AfterViewInit {
         let {x, y, width, height} = face.boundingBox;
 
         x = x + (width - width * 2 / 3) / 2;
-        y = y + (height  - height * 2 / 3) / 2;
+        y = y + (height - height * 2 / 3) / 2;
         width = width * 2 / 3;
         height = height * 2 / 3;
         ctx.beginPath();
-        ctx.lineWidth = 1 * this.videoCanvas.height / 100;
+        ctx.lineWidth = this.videoCanvas.height / 100;
         ctx.strokeStyle = 'white';
         ctx.strokeRect(
           x,
@@ -107,7 +128,7 @@ export class PrepareComponent implements AfterViewInit {
         ctx.stroke();
       }
     };
-    requestAnimationFrame(detect);
+    this.animationFrameId = requestAnimationFrame(detect);
   }
 
   takePhoto() {
@@ -140,7 +161,7 @@ export class PrepareComponent implements AfterViewInit {
       let {x, y, width, height} = face.boundingBox;
 
       x = x + (width - width * 2 / 3) / 2;
-      y = y + (height  - height * 2 / 3) / 2;
+      y = y + (height - height * 2 / 3) / 2;
       width = width * 2 / 3;
       height = height * 2 / 3;
 

@@ -1,24 +1,15 @@
 import {Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {Store} from '@ngrx/store';
-import {
-  ActivatedRoute,
-  Event,
-  NavigationCancel,
-  NavigationEnd,
-  NavigationError,
-  NavigationStart,
-  Router
-} from '@angular/router';
+import {ActivatedRoute, Event, NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router} from '@angular/router';
 import {Observable, Subject} from 'rxjs';
 import {Assets} from '../models/assets';
 import {takeUntil} from 'rxjs/operators';
-import {WebrtcConnectionService} from '../services/webrtc-connection.service';
 import {GameOptions} from '../models/game-options';
 import {MainComponent} from '../components/main.component';
 import {GameOptionsService} from '../services/game-options.service';
 import {GameLogicService} from '../services/game-logic.service';
 import {PlayerState} from '../models/player-state';
-import {GameState, GameStatus} from '../models/game-state';
+import {GameState} from '../models/game-state';
 
 @Component({
   selector: 'at-main-page',
@@ -30,6 +21,7 @@ import {GameState, GameStatus} from '../models/game-state';
       [myState]="myState$ | async"
       [enemyState]="enemyState$ | async"
       [gameOptions]="gameOptions"
+      [videoIndex]="videoIndex"
 
       (gameOptionsChange)="onChangeGameOptions($event)"
       (updateGameStatus)="gameLogic.updateGameStatus($event)"
@@ -49,6 +41,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
   private routerEventSubject = new Subject();
 
   @ViewChild(MainComponent, {static: false}) mainComponentRef: MainComponent;
+  public videoIndex: number;
 
   constructor(
     private store: Store<any>,
@@ -61,6 +54,9 @@ export class MainPageComponent implements OnInit, OnDestroy {
       const myRobotName = paramMap.get('myName') || 'dalailama';
       const enemyRobotName = paramMap.get('enemyName') || 'nobunaga';
       const mqttBrokerHost = paramMap.get('host') || 'localhost';
+      this.videoIndex = +(paramMap.get('videoIndex') || '0');
+
+      console.log(myRobotName, enemyRobotName, mqttBrokerHost, this.videoIndex);
       await this.gameLogic.init({mqttBrokerHost, myRobotName, enemyRobotName});
     });
     this.router.events.pipe(takeUntil(this.routerEventSubject)).subscribe((routerEvent: Event) => this.checkRouterEvent(routerEvent));

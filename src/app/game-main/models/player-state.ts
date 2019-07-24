@@ -1,5 +1,5 @@
 
-export type PlayerStatus = 'prepare'|'prepared'|'start'|'shot'|'hit'|'win'|'loose';
+export type PlayerStatus = 'prepare'|'prepared'|'start'|'shot'|'hit'|'win'|'lose'|'draw';
 
 export interface PlayerState {
   lastUpdateTime: number;

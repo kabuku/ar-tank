@@ -1,17 +1,22 @@
 import {Injectable} from '@angular/core';
 import {GameOptions} from '../models/game-options';
 import deepClone from '../../util/deep-clone';
+import * as THREE from 'three';
 
 const LOCAL_STORAGE_KEY_NAME = 'gameOptions';
+
+const baseVector = new THREE.Vector3(1, 2.08, 1.92);
+
 const DEFAULT_GAME_OPTIONS: GameOptions = {
-  debug: true,
+  debug: false,
   gunColor: 'gun',
   model: {
-    scale: 1,
-    mae: {x: 0, y: -0.5, z: 0},
-    ushiro: {x: 0, y: -0.5, z: 0},
-    hidari: {x: 0, y: -0.5, z: 0},
-    migi: {x: 0, y: -0.5, z: 0},
+    scale: 1.5625,
+    // base 1, 2.08, 1.94
+    mae: {x: 0, y: -baseVector.y / 2, z: 0},
+    ushiro: {x: -0.474, y: -0.544, z: 0.18},
+    hidari: {x: 0.474, y: -0.544, z: 0.18},
+    migi: {x: 0, y: -baseVector.y / 2, z: 0.18},
   },
   machineName: 'dalailama',
   arSourceOptions: {

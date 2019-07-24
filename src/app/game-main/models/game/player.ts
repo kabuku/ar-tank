@@ -49,7 +49,8 @@ export class Player extends THREE.Group {
 
   hit() {
     const hitText = new SpriteText2D('Hit!', {align: textAlign.center, font: '50px Arial', antialias: true, fillStyle: '#0000ff'});
-    hitText.translateZ(-500);
+    hitText.translateZ(-0.1);
+    hitText.scale.set(0.001, 0.001, 0.001);
     this.add(hitText);
     setTimeout(() => this.remove(hitText), 1000);
   }
@@ -57,24 +58,53 @@ export class Player extends THREE.Group {
   damage(now: number, hp: number) {
     this.hp = hp;
     const damageText = new SpriteText2D('Damage!', {align: textAlign.center, font: '50px Arial', antialias: true, fillStyle: '#ff0000'});
-    damageText.translateZ(-500);
+    damageText.translateZ(-0.1);
+    damageText.scale.set(0.0005, 0.0005, 0.0005);
     this.add(damageText);
-    setTimeout(() => this.remove(damageText), 1000);
+    setTimeout(() => {
+      this.remove(damageText);
+    }, 1000);
 
-    // TODO damage
-  }
-  endGame(win: boolean) {
-    if (win) {
-      this.win();
-    } else {
-      this.loose();
+    const damageRate = hp / this.options.hitPoint;
+    if (damageRate <= 0.8) {
+
+    } else if (damageRate <= 0.5) {
+
+    } else if (damageRate <= 0.2) {
+
+    } else if (damageRate <= 0.1) {
+
     }
   }
-  private loose() {
+  endGame(result: 'win'|'draw'|'lose') {
+    if (result === 'win') {
+      this.win();
+    } else if (result === 'draw') {
+      this.draw();
+    } else {
+      this.lose();
+    }
+  }
+  private draw() {
+    // tslint:disable-next-line:max-line-length
+    const drawText = new SpriteText2D('Draw. Nice Fight!', {align: textAlign.center, font: '50px Arial', antialias: true, fillStyle: '#ff0000'});
+    drawText.translateZ(-0.1);
+    drawText.scale.set(0.0001, 0.0001, 0.0001);
+    this.add(drawText);
+  }
 
+  private lose() {
+    this.hp = 0;
+    const loseText = new SpriteText2D('You Lose...', {align: textAlign.center, font: '50px Arial', antialias: true, fillStyle: '#ff0000'});
+    loseText.translateZ(-0.1);
+    loseText.scale.set(0.0001, 0.0001, 0.0001);
+    this.add(loseText);
   }
   private win() {
-
+    const winText = new SpriteText2D('You Win!!!', {align: textAlign.center, font: '50px Arial', antialias: true, fillStyle: '#0000ff'});
+    winText.translateZ(-0.1);
+    winText.scale.set(0.0001, 0.0001, 0.0001);
+    this.add(winText);
   }
 
 }

@@ -26,9 +26,9 @@ interface ThreeJSDebugWindow extends Window {
 declare var window: ThreeJSDebugWindow;
 
 class GameStats {
-  shoot: boolean;
+  shot: boolean;
   initialized: boolean;
-  enemyShoot: boolean;
+  enemyShot: boolean;
   damage: boolean;
   damaging: boolean;
   end: boolean;
@@ -40,6 +40,7 @@ interface EnemyMarker {
   patternFile: string;
   position: THREE.Vector3;
   rotation: THREE.Euler;
+  color?: THREE.Color;
 }
 
 @Component({
@@ -56,9 +57,9 @@ export class SceneComponent implements AfterViewInit {
   set enemyState(value: PlayerState) {
 
     if (value.status === 'shot') {
-      this.stats.enemyShoot = true;
-    } else if (value.status === 'win' || value.status === 'loose') {
-      this.finishGame(value.status === 'loose', false);
+      this.stats.enemyShot = true;
+    } else if (value.status === 'win' || value.status === 'lose') {
+      this.finishGame(false);
     }
 
     this._enemyState = value;
@@ -72,11 +73,11 @@ export class SceneComponent implements AfterViewInit {
   set myState(value: PlayerState) {
 
     if (value.status === 'shot') {
-      this.stats.shoot = true;
+      this.stats.shot = true;
     } else if (value.status === 'hit') {
       this.stats.damage = true;
-    } else if (value.status === 'win' || value.status === 'loose') {
-      this.finishGame(value.status === 'win', false);
+    } else if (value.status === 'win' || value.status === 'lose') {
+      this.finishGame(false);
     }
 
     this._myState = value;
@@ -164,7 +165,7 @@ export class SceneComponent implements AfterViewInit {
 
       if (startCountdown.text === '開始') {
         clearInterval(intervalId);
-        // this.scene.remove(startCountdown);
+        this.scene.remove(startCountdown);
         this.startGameTimer();
         return;
       }
@@ -177,17 +178,22 @@ export class SceneComponent implements AfterViewInit {
 
   private startGameTimer() {
     const countdown = new SpriteText2D('60', {align: textAlign.center, font: '50px Arial', fillStyle: '#000000', antialias: true});
-    countdown.translateY(0.9);
+    countdown.translateY(0.031);
     countdown.translateZ(-0.1);
-    countdown.scale.set(0.001, 0.001, 0.001);
+    countdown.scale.set(0.0002, 0.0002, 0.0002);
     this.scene.add(countdown);
     const intervalId = setInterval(() => {
+      if (this.stats.end) {
+        clearInterval(intervalId);
+        return;
+      }
       const dt = Math.floor((new Date().getTime() - this.startTime) / 1000);
       if (dt <= GAME_TIME_SEC) {
         countdown.text = `${GAME_TIME_SEC - dt}`;
       } else {
         countdown.text = '0';
         clearInterval(intervalId);
+        this.finishGame(true);
       }
     }, 200);
   }
@@ -293,21 +299,22 @@ export class SceneComponent implements AfterViewInit {
     const player = new Player(this.assets.gun, this.assets.sight, camera, {debug: this.gameOptions.debug});
     this.player = player;
     scene.add(player);
-    renderer.domElement.addEventListener('click', () => this.stats.shoot = true);
+    renderer.domElement.addEventListener('click', () => {
+      this.changeMyState.emit({status: 'shot', value: undefined});
+    });
 
     this.onRenderFcts.push((delta, now) => player.update(delta, now));
 
     let lastDamageTime = 0;
     this.onRenderFcts.push((delta, now) => {
-
-      if (now - lastDamageTime > 3) {
+      if (this.stats.damaging && now - lastDamageTime > 2) {
         this.stats.damaging = false;
       }
 
       if (!this.stats.damage) {
         return;
       }
-
+      this.stats.damage = false;
       this.stats.damaging = true;
       lastDamageTime = now;
       player.damage(now, this.myState.hp);
@@ -315,10 +322,10 @@ export class SceneComponent implements AfterViewInit {
 
     this.onRenderFcts.push(() => {
 
-      if (!this.stats.shoot) {
+      if (!this.stats.shot) {
         return;
       }
-      this.stats.shoot = false;
+      this.stats.shot = false;
       if (!player.shot()) {
         return;
       }
@@ -354,11 +361,12 @@ export class SceneComponent implements AfterViewInit {
           exe.position.copy(vec);
           enemy.add(exe);
           enemy.damage(this.enemyState.hp);
+          this.explosions.push(exe);
         });
 
         // finish game
         if (this.enemyState.hp === 0) {
-          this.finishGame(true, true);
+          this.finishGame(true);
           return;
         }
         this.changeEnemyState.emit({status: 'hit', value: this.enemyState.hp});
@@ -439,7 +447,8 @@ export class SceneComponent implements AfterViewInit {
       scene.add(new CameraHelper(camera));
       debugCamera = new THREE.PerspectiveCamera();
       debugCamera.lookAt(new THREE.Vector3(0, 0, 0));
-      debugCamera.position.set(0, 5, -10);      scene.add(new AxesHelper());
+      debugCamera.position.set(0, 5, -10);
+      scene.add(new AxesHelper());
       new OrbitControls(debugCamera, renderer2.domElement);
       // for debug by chrome extension
       window.scene = scene;
@@ -482,25 +491,29 @@ export class SceneComponent implements AfterViewInit {
         name: 'enemy-mae',
         patternFile: 'pattern-mae.patt',
         position: new THREE.Vector3(this.gameOptions.model.mae.x, this.gameOptions.model.mae.y, this.gameOptions.model.mae.z),
-        rotation: new THREE.Euler(-90 * Math.PI / 180, 0, 0)
+        rotation: new THREE.Euler(-90 * Math.PI / 180, 0, 0),
+        color: new THREE.Color(0xff0000),
       },
       {
         name: 'enemy-ushiro',
         patternFile: 'pattern-usiro.patt',
         position: new THREE.Vector3(this.gameOptions.model.ushiro.x, this.gameOptions.model.ushiro.y, this.gameOptions.model.ushiro.z),
-        rotation: new THREE.Euler(-90 * Math.PI / 180, 180 * Math.PI / 180, 0)
+        rotation: new THREE.Euler(-90 * Math.PI / 180, 180 * Math.PI / 180, 0),
+        color: new THREE.Color(0x000000),
       },
       {
         name: 'enemy-migi',
         patternFile: 'pattern-migi.patt',
         position: new THREE.Vector3(this.gameOptions.model.migi.x, this.gameOptions.model.migi.y, this.gameOptions.model.migi.z),
-        rotation: new THREE.Euler(-90 * Math.PI / 180, -90 * Math.PI / 180, 0)
+        rotation: new THREE.Euler(-90 * Math.PI / 180, -90 * Math.PI / 180, 0),
+        color: new THREE.Color(0x00ff00),
       },
       {
         name: 'enemy-hidari',
         patternFile: 'pattern-hidari.patt',
         position: new THREE.Vector3(this.gameOptions.model.hidari.x, this.gameOptions.model.hidari.y, this.gameOptions.model.hidari.z),
-        rotation: new THREE.Euler(-90 * Math.PI / 180, 90 * Math.PI / 180, 0)
+        rotation: new THREE.Euler(-90 * Math.PI / 180, 90 * Math.PI / 180, 0),
+        color: new THREE.Color(0x0000ff),
       },
     ];
 
@@ -512,7 +525,7 @@ export class SceneComponent implements AfterViewInit {
         type: 'pattern',
         patternUrl: `/assets/marker/${em.patternFile}?${new Date().getTime()}`
       });
-      const enemy = new Enemy(this.assets.gun2, this.enemyState.image, {debug: true});
+      const enemy = new Enemy(this.assets.gun2, this.enemyState.image, {debug: this.gameOptions.debug, color: em.color});
       enemy.position.set(em.position.x * scale, em.position.y * scale, em.position.z * scale);
       enemy.rotation.copy(em.rotation);
       enemy.scale.set(scale, scale, scale);
@@ -523,6 +536,15 @@ export class SceneComponent implements AfterViewInit {
       this.enemyMarkerRoots.push(markerRoot);
     });
 
+    this.onRenderFcts.push(() => {
+
+      if (!this.stats.enemyShot) {
+        return;
+      }
+      this.enemies.forEach(enemy => enemy.shot());
+      this.stats.enemyShot = false;
+    });
+
     // control enemy visibility
     this.onRenderFcts.push(() => {
       const visibleMarkers = this.enemyMarkerRoots.filter(markerRoot => markerRoot.visible);
@@ -530,32 +552,38 @@ export class SceneComponent implements AfterViewInit {
       if (visibleMarkers.length < 2) {
         return;
       }
+      if (this.gameOptions.debug) {
+        return;
+      }
       visibleMarkers.sort((m1, m2) => Math.abs(m2.rotation.z) - Math.abs(m1.rotation.z)).forEach((marker, i) => {
         if (i !== 0) {
+
           marker.visible = false;
         }
       });
+
     });
 
   }
 
-  private finishGame(playerWin: boolean, notifyEvent: boolean) {
+  private finishGame(notifyEvent: boolean) {
     if (this.stats.end) {
       return;
     }
     this.stats.end = true;
-    this.enemies.forEach(enemy => enemy.endGame(!playerWin));
-    this.player.endGame(playerWin);
+
+    // tslint:disable-next-line:max-line-length
+    const myResult: 'draw'|'win'|'lose' = this.myState.hp === this.enemyState.hp ? 'draw' : this.myState.hp > this.enemyState.hp ? 'win' : 'lose';
+    // tslint:disable-next-line:max-line-length
+    const enemyResult: 'draw'|'win'|'lose' = this.myState.hp === this.enemyState.hp ? 'draw' : this.myState.hp > this.enemyState.hp ? 'lose' : 'win';
+
+    this.enemies.forEach(enemy => enemy.endGame(enemyResult));
+    this.player.endGame(myResult);
     if (!notifyEvent) {
       return;
     }
     this.changeGameState.emit('end');
-    if (playerWin) {
-      this.changeEnemyState.emit({status: 'loose', value: undefined});
-      this.changeMyState.emit({status: 'win', value: undefined});
-    } else {
-      this.changeEnemyState.emit({status: 'win', value: undefined});
-      this.changeMyState.emit({status: 'loose', value: undefined});
-    }
+    this.changeEnemyState.emit({status: myResult, value: undefined});
+    this.changeEnemyState.emit({status: enemyResult, value: undefined});
   }
 }

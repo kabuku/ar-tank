@@ -63,6 +63,9 @@ const assetSources: AssetSources[] = [
   {type: 'obj+mtl', id: 'gun2', path: '/assets/models/gun2/', obj: 'model.obj', mtl: 'materials.mtl'},
   {type: 'texture', id: 'flare', url: '/assets/models/flare/flare.png'},
   {type: 'texture', id: 'sight', url: '/assets/models/sight/Sight.png'},
+  {type: 'texture', id: 'glass1', url: '/assets/models/glass/1.png'},
+  {type: 'texture', id: 'glass2', url: '/assets/models/glass/2.png'},
+  {type: 'texture', id: 'glass3', url: '/assets/models/glass/3.png'},
 ];
 
 @Injectable({

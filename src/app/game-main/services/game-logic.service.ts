@@ -15,7 +15,7 @@ interface BaseUpdatePlayerStateParams {
 }
 
 interface BasicUpdatePlayerStateParams extends BaseUpdatePlayerStateParams {
-  status: 'prepare' | 'start' | 'shot' | 'win' | 'loose';
+  status: 'prepare' | 'start' | 'shot' | 'win' | 'lose'| 'draw';
   value: undefined;
 }
 

@@ -18,6 +18,7 @@ export class MainComponent implements OnInit {
   @ViewChild(SceneComponent, {static: false}) sceneRef: SceneComponent;
 
   @Input() loading: boolean;
+  @Input() videoIndex: number;
   @Input() assets: Assets;
   @Input() gameOptions: GameOptions;
   @Input() gameState: GameState;
@@ -38,6 +39,9 @@ export class MainComponent implements OnInit {
       data: this.gameOptions
     });
     dialogRef.afterClosed().subscribe(result => {
+      if (!result) {
+        return;
+      }
       this.gameOptions = result;
       this.gameOptionsChange.emit(this.gameOptions);
     });
@@ -45,6 +49,10 @@ export class MainComponent implements OnInit {
 
   start() {
     this.updateGameStatus.emit('start');
+  }
+  restart() {
+    this.sceneRef.restart();
+    this.updateGameStatus.emit('prepared');
   }
 
   ngOnInit() {
