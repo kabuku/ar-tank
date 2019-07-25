@@ -13,6 +13,9 @@ import {PlayerState} from '../models/player-state';
 
 import {SpriteText2D, textAlign} from 'three-text2d';
 import {UpdatePlayerStateParams} from '../services/game-logic.service';
+import {SoundEngineService} from '../services/sound-engine.service';
+
+export type BattleResult = 'draw' | 'win' | 'lose';
 
 const GAME_TIME_SEC = 65;
 const START_COUNTDOWN_SEC = 5;
@@ -56,12 +59,12 @@ export class SceneComponent implements AfterViewInit {
   @Input()
   set enemyState(value: PlayerState) {
 
-    if (value.status === 'shot') {
+    this._enemyState = value;
+    if (value.status === 'attack') {
       this.stats.enemyShot = true;
     } else if (value.status === 'win' || value.status === 'lose') {
       this.finishGame(false);
     }
-
     this._enemyState = value;
   }
 
@@ -72,6 +75,7 @@ export class SceneComponent implements AfterViewInit {
   @Input()
   set myState(value: PlayerState) {
 
+    this._myState = value;
     if (value.status === 'shot') {
       this.stats.shot = true;
     } else if (value.status === 'hit') {
@@ -80,7 +84,6 @@ export class SceneComponent implements AfterViewInit {
       this.finishGame(false);
     }
 
-    this._myState = value;
   }
 
   get gameState(): GameState {
@@ -112,10 +115,11 @@ export class SceneComponent implements AfterViewInit {
   }
 
 
-  constructor() {
+  constructor(private se: SoundEngineService) {
   }
 
-  @Input() assets: Assets;
+  @Input()
+  public assets: Assets;
 
   @Output() changeGameState = new EventEmitter<GameStatus>();
   @Output() changeEnemyState = new EventEmitter<UpdatePlayerStateParams>();
@@ -157,22 +161,41 @@ export class SceneComponent implements AfterViewInit {
   private startStartCountdown() {
 
     const startCountdown = new SpriteText2D('5', {align: textAlign.center, font: '50px Arial', fillStyle: '#000000', antialias: true});
+    this.se.play('te');
     startCountdown.translateZ(-0.1);
     this.scene.add(startCountdown);
     startCountdown.scale.set(0.001, 0.001, 0.001);
-
+    let waitCount = 0;
     const intervalId = setInterval(() => {
 
       if (startCountdown.text === '開始') {
+
+        if (waitCount === 0) {
+          this.startGameTimer();
+        }
+
+        if (waitCount <= 2) {
+          waitCount++;
+          return;
+        }
+
         clearInterval(intervalId);
         this.scene.remove(startCountdown);
-        this.startGameTimer();
         return;
       }
 
       const dt = Math.floor((new Date().getTime() - this.startTime) / 1000);
-      startCountdown.text = dt >= START_COUNTDOWN_SEC ? '開始' : `${START_COUNTDOWN_SEC - dt}`;
 
+      const newText = dt >= START_COUNTDOWN_SEC ? '開始' : `${START_COUNTDOWN_SEC - dt}`;
+
+      if (startCountdown.text !== newText) {
+        if ( newText !== '開始' ) {
+          this.se.play('te');
+        } else {
+          this.se.play('gameStart');
+        }
+      }
+      startCountdown.text = newText;
     }, 500);
   }
 
@@ -182,6 +205,8 @@ export class SceneComponent implements AfterViewInit {
     countdown.translateZ(-0.1);
     countdown.scale.set(0.0002, 0.0002, 0.0002);
     this.scene.add(countdown);
+    setTimeout(() => this.se.play('bgm', 5), 5000);
+
     const intervalId = setInterval(() => {
       if (this.stats.end) {
         clearInterval(intervalId);
@@ -314,6 +339,7 @@ export class SceneComponent implements AfterViewInit {
       if (!this.stats.damage) {
         return;
       }
+      this.se.play('damage');
       this.stats.damage = false;
       this.stats.damaging = true;
       lastDamageTime = now;
@@ -327,8 +353,11 @@ export class SceneComponent implements AfterViewInit {
       }
       this.stats.shot = false;
       if (!player.shot()) {
+        console.log('charging now');
         return;
       }
+      this.changeMyState.emit({status: 'attack', value: undefined});
+      this.se.play('shot');
       const ray = new Raycaster(camera.position, new THREE.Vector3(0, 0, -1));
       const intersections = ray.intersectObjects(this.hitTargets, true);
       console.log('intersections', intersections);
@@ -354,6 +383,7 @@ export class SceneComponent implements AfterViewInit {
         this.enemyState.hp -= 10;
         console.log('damage to enemy', intersectionObject.object);
         player.hit();
+        this.se.play('damage');
         this.enemies.forEach(enemy => {
           const exe = ex.clone();
           const vec = intersectionObject.point.clone();
@@ -471,6 +501,9 @@ export class SceneComponent implements AfterViewInit {
     renderer.domElement.style.left = '0px';
     this.rootDiv.nativeElement.appendChild(renderer.domElement);
 
+    if (!this.gameOptions.debug) {
+      return {renderer, renderer2: undefined};
+    }
     const renderer2 = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true
@@ -542,6 +575,7 @@ export class SceneComponent implements AfterViewInit {
         return;
       }
       this.enemies.forEach(enemy => enemy.shot());
+      this.se.play('shot');
       this.stats.enemyShot = false;
     });
 
@@ -571,11 +605,11 @@ export class SceneComponent implements AfterViewInit {
       return;
     }
     this.stats.end = true;
-
+    this.se.stop('bgm');
     // tslint:disable-next-line:max-line-length
-    const myResult: 'draw'|'win'|'lose' = this.myState.hp === this.enemyState.hp ? 'draw' : this.myState.hp > this.enemyState.hp ? 'win' : 'lose';
+    const myResult: BattleResult = this.myState.hp === this.enemyState.hp ? 'draw' : this.myState.hp > this.enemyState.hp ? 'win' : 'lose';
     // tslint:disable-next-line:max-line-length
-    const enemyResult: 'draw'|'win'|'lose' = this.myState.hp === this.enemyState.hp ? 'draw' : this.myState.hp > this.enemyState.hp ? 'lose' : 'win';
+    const enemyResult: BattleResult = this.myState.hp === this.enemyState.hp ? 'draw' : this.myState.hp > this.enemyState.hp ? 'lose' : 'win';
 
     this.enemies.forEach(enemy => enemy.endGame(enemyResult));
     this.player.endGame(myResult);

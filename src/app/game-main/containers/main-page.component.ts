@@ -3,13 +3,14 @@ import {Store} from '@ngrx/store';
 import {ActivatedRoute, Event, NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router} from '@angular/router';
 import {Observable, Subject} from 'rxjs';
 import {Assets} from '../models/assets';
-import {takeUntil} from 'rxjs/operators';
+import {takeUntil, tap} from 'rxjs/operators';
 import {GameOptions} from '../models/game-options';
 import {MainComponent} from '../components/main.component';
 import {GameOptionsService} from '../services/game-options.service';
 import {GameLogicService} from '../services/game-logic.service';
 import {PlayerState} from '../models/player-state';
 import {GameState} from '../models/game-state';
+import {SoundEngineService} from '../services/sound-engine.service';
 
 @Component({
   selector: 'at-main-page',
@@ -48,14 +49,28 @@ export class MainPageComponent implements OnInit, OnDestroy {
     private router: Router,
     private gameLogic: GameLogicService,
     private gameOptionsService: GameOptionsService,
+    private se: SoundEngineService,
     activeRoute: ActivatedRoute) {
-    activeRoute.data.subscribe((data: {assets: Assets}) => this.assets = data.assets);
+    activeRoute.data.subscribe((data: {assets: Assets}) => {
+      this.assets = data.assets;
+      this.se.loads([
+        {name: 'bgm', buffer: this.assets.bgm, loop: true},
+        {name: 'damage', buffer: this.assets.damageSound, loop: false},
+        {name: 'shot', buffer: this.assets.shotSound, loop: false},
+        {name: 'prepare', buffer: this.assets.prepareBgm, loop: true},
+        {name: 'te', buffer: this.assets.teSound, loop: false},
+        {name: 'select', buffer: this.assets.selectSound, loop: false},
+        {name: 'gameStart', buffer: this.assets.gameStartBgm, loop: false},
+        ],
+      );
+    });
     activeRoute.queryParamMap.subscribe(async paramMap => {
       const myRobotName = paramMap.get('myName') || 'dalailama';
       const enemyRobotName = paramMap.get('enemyName') || 'nobunaga';
       const mqttBrokerHost = paramMap.get('host') || 'localhost';
       this.videoIndex = +(paramMap.get('videoIndex') || '0');
-
+      const mute = !!paramMap.get('mute');
+      this.se.mute(mute);
       console.log(myRobotName, enemyRobotName, mqttBrokerHost, this.videoIndex);
       await this.gameLogic.init({mqttBrokerHost, myRobotName, enemyRobotName});
     });
@@ -63,11 +78,20 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
     this.gameOptions = this.gameOptionsService.get();
 
-    this.gameState$ = this.gameLogic.gameState$;
+    this.gameState$ = this.gameLogic.gameState$.pipe(tap(gameState => {
+      switch (gameState.status) {
+        case 'prepare':
+          this.se.play('prepare', 3);
+          break;
+        case 'start':
+          this.se.stop('prepare');
+          break;
+        default:
+          break;
+      }
+    }));
     this.myState$ = this.gameLogic.myState$;
     this.enemyState$ = this.gameLogic.enemyState$;
-
-
   }
 
   ngOnInit() {

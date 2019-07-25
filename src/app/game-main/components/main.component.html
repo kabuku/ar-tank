@@ -9,7 +9,7 @@
   </div>
   <div *ngIf="!loading && gameState && myState && enemyState else loadingView" [ngSwitch]="gameState.status">
     <div *ngSwitchCase="'wait'">
-      <button mat-raised-button (click)="updateGameStatus.emit('prepare')">New GAME</button>
+      <button mat-raised-button (click)="newGame()">New GAME</button>
     </div>
     <div *ngSwitchCase="'prepare'" fxLayout="column" fxLayoutGap="16px">
       <at-prepare

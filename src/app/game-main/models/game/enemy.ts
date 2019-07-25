@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {Gun} from './gun';
 import {Explosion} from './fire';
+import {BattleResult} from '../../components/scene.component';
 
 const DEFAULT_HIT_POINT = 100;
 
@@ -43,15 +44,15 @@ export class Enemy extends THREE.Group {
   }
 
   private createBody(image: string): THREE.Mesh {
-    const black = new THREE.MeshBasicMaterial({color: this.options.color});
+    const bodyMat = new THREE.MeshBasicMaterial({color: this.options.color, transparent: true, opacity: 0.5});
     const materials = [
-      black,
-      black,
-      black,
-      black,
+      bodyMat,
+      bodyMat,
+      bodyMat,
+      bodyMat,
       this.createFace(image),
-      black,
-      black
+      bodyMat,
+      bodyMat
     ];
 
     const bodyGeometry = new THREE.BoxBufferGeometry(1, 2.08, 1.94);
@@ -86,7 +87,7 @@ export class Enemy extends THREE.Group {
 
     }
   }
-  endGame(result: 'win'|'draw'|'lose') {
+  endGame(result: BattleResult) {
     if (result === 'win') {
       this.win();
     } else if (result === 'draw') {

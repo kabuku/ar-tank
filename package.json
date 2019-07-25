@@ -30,7 +30,6 @@
     "@ngrx/store-devtools": "^8.0.1",
     "@types/stats.js": "^0.17.0",
     "ar.js": "^1.7.2",
-    "dat-gui": "^0.5.0",
     "dat.gui": "^0.7.6",
     "mqtt": "^3.0.0",
     "process": "^0.11.10",
@@ -38,10 +37,8 @@
     "shader-particle-engine": "^1.0.6",
     "stats.js": "^0.17.0",
     "three": "^0.106.2",
-    "three-particle-fire": "^0.0.0",
     "three-text2d": "^0.5.3",
     "tslib": "^1.9.0",
-    "volumetric-fire": "https://github.com/yomotsu/VolumetricFire.git",
     "zone.js": "~0.9.1"
   },
   "devDependencies": {

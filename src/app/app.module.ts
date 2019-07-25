@@ -9,10 +9,10 @@ import {environment} from '../environments/environment';
 import {EffectsModule} from '@ngrx/effects';
 import {StoreRouterConnectingModule} from '@ngrx/router-store';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {GameMainModule} from './game-main/game-main.module';
 import {metaReducers, reducers} from './store/reducers';
 import {Effects} from './store/effects';
 import {FlexLayoutModule} from '@angular/flex-layout';
+import {HttpClientModule} from '@angular/common/http';
 
 @NgModule({
   declarations: [
@@ -27,6 +27,7 @@ import {FlexLayoutModule} from '@angular/flex-layout';
     StoreRouterConnectingModule.forRoot(),
     BrowserAnimationsModule,
     FlexLayoutModule,
+    HttpClientModule
   ],
   providers: [],
   bootstrap: [AppComponent]

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {Explosion} from './fire';
 
-const DEFAULT_CHARGE_TIME = 2000;
+const DEFAULT_CHARGE_TIME = 5000;
 const DEFAULT_GUN_FIRE_TIME = 500;
 const DEFAULT_GUN_REACTION_TIME = 1500;
 const DEFAULT_GUN_FIRE_LIGHT_INTENSITY = 5;
@@ -70,6 +70,7 @@ export class Gun extends THREE.Group {
 
   public shot(): boolean {
     if (this.chargeTime > 0) {
+      console.log('charging', this.chargeTime);
       return false;
     }
 
@@ -83,27 +84,6 @@ export class Gun extends THREE.Group {
   }
 
   update(delta, now) {
-    // if (this.chargeTime > 0) {
-    //   this.chargeTime = Math.max(0, this.chargeTime - delta * 1000);
-    // }
-    //
-    // if (this.gunFireTime <= 0) {
-    //   return;
-    // }
-    //
-    // this.gunFireTime -= delta * 1000;
-    // if (this.gunFireTime < 0) {
-    //
-    //   this.remove(this.fireGroup);
-    //   this.gunFireTime = 0;
-    //   // this.shooting = false;
-    //   this.rotation.set(this.originalRotation.x, this.originalRotation.y, this.originalRotation.z);
-    //   return;
-    // }
-    // const scale = this.gunFireTime / this.options.gunFireTime;
-    // this.fireGroup.scale.set(scale, scale, scale);
-    // this.rotation.set(this.originalRotation.x + this.options.direction * 10 * scale * Math.PI / 180, this.rotation.y, this.rotation.z);
-    // (this.fireGroup.getObjectByName('fireLight') as SpotLight).intensity = this.options.gunFireLightIntensity * scale;
     if (this.chargeTime > 0) {
       this.chargeTime = Math.max(0, this.chargeTime - delta * 1000);
     }

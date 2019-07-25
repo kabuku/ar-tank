@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {Gun} from './gun';
 import {SpriteText2D, textAlign} from 'three-text2d';
+import {BattleResult} from '../../components/scene.component';
 
 const DEFAULT_HIT_POINT = 100;
 
@@ -76,7 +77,7 @@ export class Player extends THREE.Group {
 
     }
   }
-  endGame(result: 'win'|'draw'|'lose') {
+  endGame(result: BattleResult) {
     if (result === 'win') {
       this.win();
     } else if (result === 'draw') {

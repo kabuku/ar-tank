@@ -11,6 +11,7 @@ import { SettingFormComponent } from './components/setting-form.component';
 import {FlexLayoutModule} from '@angular/flex-layout';
 import { SettingFormDialogComponent } from './components/setting-form-dialog.component';
 import { PrepareComponent } from './components/prepare.component';
+import {HttpClientModule} from '@angular/common/http';
 
 
 @NgModule({
@@ -21,6 +22,7 @@ import { PrepareComponent } from './components/prepare.component';
     MaterialModule,
     ReactiveFormsModule,
     FlexLayoutModule,
+    HttpClientModule
   ],
   entryComponents: [SettingFormDialogComponent]
 })

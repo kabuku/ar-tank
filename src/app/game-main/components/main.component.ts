@@ -7,6 +7,7 @@ import {SettingFormDialogComponent} from './setting-form-dialog.component';
 import {PlayerState} from '../models/player-state';
 import {UpdatePlayerStateParams} from '../services/game-logic.service';
 import {GameState, GameStatus} from '../models/game-state';
+import {SoundEngineService} from '../services/sound-engine.service';
 
 @Component({
   selector: 'at-main',
@@ -30,7 +31,7 @@ export class MainComponent implements OnInit {
   @Output() updateMyStatus = new EventEmitter<UpdatePlayerStateParams>();
   @Output() updateEnemyStatus = new EventEmitter<UpdatePlayerStateParams>();
 
-  constructor(public dialog: MatDialog) {
+  constructor(public dialog: MatDialog, private se: SoundEngineService) {
   }
 
   openSettingDialog() {
@@ -58,4 +59,9 @@ export class MainComponent implements OnInit {
   ngOnInit() {
   }
 
+  newGame() {
+    this.se.play('select', 0, 0.35);
+
+    this.updateGameStatus.emit('prepare');
+  }
 }
