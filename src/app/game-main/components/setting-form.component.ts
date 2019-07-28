@@ -21,7 +21,9 @@ export class SettingFormComponent implements OnInit {
         if (key === 'arSourceOptions') {
           const arSourceOptionsGroup = this.form.get(key) as FormGroup;
           Object.entries(value).forEach(([k, v]) => {
-            arSourceOptionsGroup.get(k).setValue(v);
+            if (arSourceOptionsGroup.get(k)) {
+              arSourceOptionsGroup.get(k).setValue(v);
+            }
           });
           return;
         }
@@ -80,7 +82,8 @@ export class SettingFormComponent implements OnInit {
       sourceWidth: [''],
       sourceHeight: [''],
       displayWidth: [''],
-      displayHeight: ['']
+      displayHeight: [''],
+      stream: [''],
     })
   });
 

@@ -106,9 +106,6 @@
         <mat-label>シグナリングサーバパス</mat-label>
         <input matInput formControlName="signalingPath" required>
       </mat-form-field>
-      <div>
-        <button mat-raised-button (click)="onClickConnect()" [disabled]="!form.valid">接続</button>
-      </div>
     </div>
     <mat-form-field [hidden]="sourceType.value !== 'image' && sourceType.value !== 'video'">
       <mat-label>リソースURL</mat-label>

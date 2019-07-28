@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {Observable, Subject} from 'rxjs';
-import {webSocket} from 'rxjs/webSocket';
+import {webSocket, WebSocketSubject} from 'rxjs/webSocket';
 
 interface SignalingMessage {
   data?: string;
@@ -13,6 +13,7 @@ interface SignalingMessage {
 })
 export class WebrtcConnectionService {
   private iceCandidates: RTCIceCandidate[] = [];
+  private ws: WebSocketSubject<SignalingMessage>;
 
   constructor() {
   }
@@ -37,22 +38,26 @@ export class WebrtcConnectionService {
         sdpMid: event.candidate.sdpMid,
         candidate: event.candidate.candidate
       };
-      ws.next({
+      this.ws.next({
         what: 'addIceCandidate',
         data: JSON.stringify(candidate)
       });
     };
 
-    const ws = webSocket<SignalingMessage>({
+    if (this.ws && !this.ws.closed) {
+      this.ws.complete();
+    }
+
+    this.ws = webSocket<SignalingMessage>({
       url: signalingServerPath,
       openObserver: {
         next: value => {
           pc = this.createPeerConnection(targetHost, {onTrack, onIceCandidate});
-          ws.next({
+          this.ws.next({
             what: 'call',
             options: {
-              force_hw_vcodec: false,
-              vformat: 10
+              force_hw_vcodec: true,
+              vformat: 25
             }
           });
         }
@@ -63,13 +68,17 @@ export class WebrtcConnectionService {
             pc.close();
             pc = null;
           }
+
+          if (sub) {
+            sub.complete();
+          }
         }
       }
     });
 
     let remoteDesc = false;
 
-    ws.subscribe(msg => {
+    this.ws.subscribe(msg => {
       switch (msg.what) {
         case 'offer':
           pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(msg.data)))
@@ -77,7 +86,7 @@ export class WebrtcConnectionService {
             .then((sessionDescription) => {
 
               remoteDesc = true;
-              ws.next({
+              this.ws.next({
                 what: 'answer',
                 data: JSON.stringify(sessionDescription)
               });
@@ -114,6 +123,13 @@ export class WebrtcConnectionService {
           }
           document.documentElement.style.cursor = 'default';
           break;
+        case 'message':
+          if (msg.data.includes('Sorry')) {
+            sub.error({ type: 'connectionError', msg: msg.data});
+            this.ws.complete();
+          }
+          console.log(msg);
+          break;
         default:
           console.log(msg);
           break;
@@ -124,10 +140,15 @@ export class WebrtcConnectionService {
     return sub;
   }
 
-  private createPeerConnection(targetHost, options?: { onTrack?: (evt: RTCTrackEvent) => any, onDataChannel?: (ev: RTCDataChannelEvent) => any, onIceCandidate?: (ev: RTCPeerConnectionIceEvent) => any }): RTCPeerConnection {
+  private createPeerConnection(
+    targetHost,
+    options?: {
+      onTrack?: (evt: RTCTrackEvent) => any,
+      onDataChannel?: (ev: RTCDataChannelEvent) => any,
+      onIceCandidate?: (ev: RTCPeerConnectionIceEvent) => any }): RTCPeerConnection {
     options = options || {};
     try {
-      const pc = new RTCPeerConnection({iceServers: [{urls: ['stun:stun.l.google.com:19302', 'stun:' + targetHost + ':3478']}]});
+      const pc = new RTCPeerConnection({});
       console.log('pc', pc);
       pc.ontrack = options.onTrack;
       pc.ondatachannel = options.onDataChannel;

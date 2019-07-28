@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {Gun} from './gun';
-import {Explosion} from './fire';
 import {BattleResult} from '../../components/scene.component';
+import {Explosion} from './fire';
 
 const DEFAULT_HIT_POINT = 100;
 
@@ -17,7 +17,7 @@ export class Enemy extends THREE.Group {
   private options: EnemyOptions;
   public hitMesh: THREE.Mesh;
   private hp: number;
-  // tslint:disable-next-line:variable-name
+  private face: DetectedFace;
 
   constructor(gun: THREE.Group, image: string, options?: Partial<EnemyOptions>) {
     super();
@@ -41,6 +41,26 @@ export class Enemy extends THREE.Group {
 
   public shot() {
     this.gun.shot();
+
+    if (!this.face) {
+      console.log('face not found');
+      return;
+    }
+
+    const mouth = this.face.landmarks.find(landmark => landmark.type === 'mouth');
+
+    if (!mouth) {
+      console.log('nouse not found');
+      return;
+    }
+
+    const xPositionRate = mouth.locations[0].x / 512;
+    const yPositionRate = mouth.locations[0].y / 512;
+
+    const explosion = new Explosion({});
+
+    explosion.position.set(xPositionRate, 2.08 * yPositionRate, 0);
+    this.add(explosion);
   }
 
   private createBody(image: string): THREE.Mesh {
@@ -63,12 +83,45 @@ export class Enemy extends THREE.Group {
 
   private createFace(image: string): THREE.Material {
     const img = document.createElement('img');
+    const canvas = document.createElement('canvas');
     img.src = image;
-    const texture = new THREE.Texture(img);
+
+    img.onload = () => {
+        const fd = new FaceDetector({fastMode: false, maxDetectedFaces: 1});
+        fd.detect(img).then(faces => {
+          this.face = faces[0];
+          const ctx = canvas.getContext('2d');
+          const {x, y, width, height} = this.calcBoundingBox(this.face);
+          console.log(x, y, width, height, this.face.boundingBox);
+          canvas.height = height;
+          canvas.width = width;
+          ctx.drawImage(img, x, y, width, height, 0, 0, width, height);
+        });
+    };
+
+    const texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    const faceMaterial = new THREE.MeshBasicMaterial({map: texture, overdraw: 1});
-    return faceMaterial;
+    return new THREE.MeshBasicMaterial({map: texture, overdraw: 1});
   }
+
+  private calcBoundingBox(face) {
+    let {x, y, width, height} = face.boundingBox;
+    x = x + (width - width * 4 / 5) / 2;
+    y = y + (height - height * 4 / 5) / 2;
+    width = width * 4 / 5;
+    height = height * 4 / 5;
+    return {x, y, width, height};
+  }
+
+  private calcLandmarkPosition(face, landmark: Landmark) {
+    const {width, height} = face.boundingBox;
+
+    let {x, y} = landmark.locations[0];
+    x = x + (width - width * 4 / 5) / 2;
+    y = y + (height - height * 4 / 5) / 2;
+    return {x, y};
+  }
+
 
   update = (delta: number, now: number) => {
     this.gun.update(delta, now);
@@ -87,6 +140,7 @@ export class Enemy extends THREE.Group {
 
     }
   }
+
   endGame(result: BattleResult) {
     if (result === 'win') {
       this.win();
@@ -96,6 +150,7 @@ export class Enemy extends THREE.Group {
       this.lose();
     }
   }
+
   private draw() {
 
   }
@@ -103,6 +158,7 @@ export class Enemy extends THREE.Group {
   private lose() {
 
   }
+
   private win() {
 
   }

@@ -25,7 +25,7 @@ const DEFAULT_GAME_OPTIONS: GameOptions = {
     // hostPath: 'raspberrypi-dalailama.local',
     sourceUrl: 'https://raspberrypi-dalailama.local:8080/stream/video.mjpeg',
     displayHeight: 480,
-    displayWidth: 640,
+    // displayWidth: 640,
     sourceHeight: 240,
     sourceWidth: 320
     // sourceType: 'stream',
@@ -47,9 +47,11 @@ export class GameOptionsService {
   constructor() {
   }
 
-  get(): GameOptions {
+  get(robotName: string): GameOptions {
 
-    const gameOptionStr = localStorage.getItem(LOCAL_STORAGE_KEY_NAME);
+    const key = this.getKeyName(robotName);
+
+    const gameOptionStr = localStorage.getItem(key);
 
     if (!gameOptionStr) {
       return deepClone(DEFAULT_GAME_OPTIONS);
@@ -58,18 +60,19 @@ export class GameOptionsService {
     try {
       return JSON.parse(gameOptionStr);
     } catch (e) {
-      localStorage.removeItem(LOCAL_STORAGE_KEY_NAME);
+      console.log(e);
+      localStorage.removeItem(key);
       return deepClone(DEFAULT_GAME_OPTIONS);
     }
   }
 
-  set(value: GameOptions) {
-    localStorage.setItem(LOCAL_STORAGE_KEY_NAME, JSON.stringify(value));
+  private getKeyName(robotName: string) {
+    const key = `${LOCAL_STORAGE_KEY_NAME}_${robotName}`;
+    return key;
   }
 
-  remove() {
-    localStorage.removeItem(LOCAL_STORAGE_KEY_NAME);
+  set(robotName, value: GameOptions) {
+    localStorage.setItem(this.getKeyName(robotName), JSON.stringify(value));
   }
-
 
 }

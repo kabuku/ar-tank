@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {Explosion} from './fire';
 
-const DEFAULT_CHARGE_TIME = 5000;
+const DEFAULT_CHARGE_TIME = 2000;
 const DEFAULT_GUN_FIRE_TIME = 500;
 const DEFAULT_GUN_REACTION_TIME = 1500;
 const DEFAULT_GUN_FIRE_LIGHT_INTENSITY = 5;

@@ -62,7 +62,7 @@ export class SceneComponent implements AfterViewInit {
     this._enemyState = value;
     if (value.status === 'attack') {
       this.stats.enemyShot = true;
-    } else if (value.status === 'win' || value.status === 'lose') {
+    } else if (value.status === 'win' || value.status === 'lose' || value.status === 'draw') {
       this.finishGame(false);
     }
     this._enemyState = value;
@@ -80,7 +80,7 @@ export class SceneComponent implements AfterViewInit {
       this.stats.shot = true;
     } else if (value.status === 'hit') {
       this.stats.damage = true;
-    } else if (value.status === 'win' || value.status === 'lose') {
+    } else if (value.status === 'win' || value.status === 'lose' || value.status === 'draw') {
       this.finishGame(false);
     }
 

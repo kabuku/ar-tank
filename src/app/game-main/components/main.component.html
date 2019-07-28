@@ -7,9 +7,22 @@
       <mat-icon>settings</mat-icon>
     </button>
   </div>
-  <div *ngIf="!loading && gameState && myState && enemyState else loadingView" [ngSwitch]="gameState.status">
+  <div *ngIf="!loading && gameState && myState && enemyState else loadingView" [ngSwitch]="gameState.status"  fxLayout="column" fxLayoutAlign="space-around center">
     <div *ngSwitchCase="'wait'">
-      <button mat-raised-button (click)="newGame()">New GAME</button>
+      <section class="mat-typography">
+        <h1 class="mat-display-4">ガンメンタイセン</h1>
+        <div fxLayout="column" fxLayoutAlign="end end">
+          <h2 class="mat-display-3">ツヴァイ</h2>
+        </div>
+      </section>
+      <div fxLayout="column" fxLayoutAlign="stretch center">
+        <button class="startButton" color="primary" mat-button (click)="newGame()">Press Start Button</button>
+      </div>
+      <div fxLayout="column" fxLayoutAlign="end end">
+        <div>
+        (c) <img class="kabukuLogo" src="/assets/images/kabuku.png" alt="kabuku Inc">
+        </div>
+      </div>
     </div>
     <div *ngSwitchCase="'prepare'" fxLayout="column" fxLayoutGap="16px">
       <at-prepare

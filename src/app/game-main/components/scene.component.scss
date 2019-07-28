@@ -2,21 +2,6 @@
   animation: damage 0.1s ease-out 8;
 }
 
-.timer {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  margin: auto;
-}
-.startCountdown {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translateY(-50%) translateX(-50%);
-  margin: auto;
-}
-
 @keyframes damage {
   0% {
     transform: translate(0px, 0px) rotateZ(0deg)

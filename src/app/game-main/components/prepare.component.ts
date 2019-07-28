@@ -111,12 +111,7 @@ export class PrepareComponent implements AfterViewInit {
       ctx.drawImage(img, 0, 0);
 
       for (const face of faces) {
-        let {x, y, width, height} = face.boundingBox;
-
-        x = x + (width - width * 2 / 3) / 2;
-        y = y + (height - height * 2 / 3) / 2;
-        width = width * 2 / 3;
-        height = height * 2 / 3;
+        const {x, y, width, height} = this.calcBoundingBox(face);
         ctx.beginPath();
         ctx.lineWidth = this.videoCanvas.height / 100;
         ctx.strokeStyle = 'white';
@@ -130,6 +125,15 @@ export class PrepareComponent implements AfterViewInit {
       }
     };
     this.animationFrameId = requestAnimationFrame(detect);
+  }
+
+  private calcBoundingBox(face) {
+    const {x, y, width, height} = face.boundingBox;
+    // x = x + (width - width * 4 / 5) / 2;
+    // y = y + (height - height * 4 / 5) / 2;
+    // width = width * 4 / 5;
+    // height = height * 4 / 5;
+    return {x, y, width, height};
   }
 
   takePhoto() {
@@ -157,16 +161,11 @@ export class PrepareComponent implements AfterViewInit {
       }
       const face = faces[0];
       const ctx = this.snapshotCanvas.getContext('2d');
-      this.snapshotCanvas.width = 256;
-      this.snapshotCanvas.height = 256;
-      let {x, y, width, height} = face.boundingBox;
+      this.snapshotCanvas.width = 512;
+      this.snapshotCanvas.height = 512;
+      const {x, y, width, height} = this.calcBoundingBox(face);
 
-      x = x + (width - width * 2 / 3) / 2;
-      y = y + (height - height * 2 / 3) / 2;
-      width = width * 2 / 3;
-      height = height * 2 / 3;
-
-      ctx.drawImage(img, x, y, width, height, 0, 0, 256, 256);
+      ctx.drawImage(img, x, y, width, height, 0, 0, 512, 512);
       this.captureData = this.snapshotCanvas.toDataURL();
       console.log(this.captureData);
       this.takingPhoto = false;
