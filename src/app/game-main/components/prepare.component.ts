@@ -1,6 +1,5 @@
 import {AfterViewInit, Component, ElementRef, EventEmitter, Input, Output, ViewChild} from '@angular/core';
 import {PlayerState} from '../models/player-state';
-import {SoundEngineService} from '../services/sound-engine.service';
 
 declare var window: ShapeDetectionWindow;
 

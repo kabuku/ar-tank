@@ -23,8 +23,11 @@ export class WebrtcConnectionService {
 
     const sub = new Subject<MediaStream>();
     const onTrack = (ev: RTCTrackEvent) => {
-      sub.next(ev.streams[0]);
-      sub.complete();
+      console.log('track', ev);
+      if (ev.track.kind === 'video') {
+        sub.next(ev.streams[0]);
+      }
+      // sub.complete();
     };
 
     const onIceCandidate = (event) => {
@@ -57,7 +60,8 @@ export class WebrtcConnectionService {
             what: 'call',
             options: {
               force_hw_vcodec: true,
-              vformat: 25
+              vformat: 25,
+              trickle_ice: true
             }
           });
         }
@@ -82,7 +86,7 @@ export class WebrtcConnectionService {
       switch (msg.what) {
         case 'offer':
           pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(msg.data)))
-            .then(() => pc.createAnswer({offerToReceiveVideo: true, offerToReceiveAudio: false}))
+            .then(() => pc.createAnswer({offerToReceiveVideo: true, offerToReceiveAudio: false, voiceActivityDetection: false}))
             .then((sessionDescription) => {
 
               remoteDesc = true;
@@ -107,7 +111,6 @@ export class WebrtcConnectionService {
           if (remoteDesc) {
             this.addIceCandidates(pc);
           }
-          document.documentElement.style.cursor = 'default';
           break;
 
         case 'iceCandidates': // when trickle ice is not enabled
@@ -121,7 +124,6 @@ export class WebrtcConnectionService {
           if (remoteDesc) {
             this.addIceCandidates(pc);
           }
-          document.documentElement.style.cursor = 'default';
           break;
         case 'message':
           if (msg.data.includes('Sorry')) {
@@ -148,7 +150,7 @@ export class WebrtcConnectionService {
       onIceCandidate?: (ev: RTCPeerConnectionIceEvent) => any }): RTCPeerConnection {
     options = options || {};
     try {
-      const pc = new RTCPeerConnection({});
+      const pc = new RTCPeerConnection({iceServers: [{urls: ['stun:stun.l.google.com:19302', `stun:${targetHost.split(':')[0]}:3478`]}]});
       console.log('pc', pc);
       pc.ontrack = options.onTrack;
       pc.ondatachannel = options.onDataChannel;

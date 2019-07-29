@@ -304,7 +304,9 @@ export class SceneComponent implements AfterViewInit {
 
   private setupExplosions(scene, camera) {
     this.onRenderFcts.push((delta, now) => {
-      this.explosions.filter(ex => ex.burnOut).forEach(ex => ex.parent.remove(ex));
+      this.explosions.filter(ex => ex.burnOut).forEach(ex => {
+        ex.parent.remove(ex);
+      });
       this.explosions = this.explosions.filter(ex => !ex.burnOut);
       this.explosions.forEach(explosion => {
 
@@ -381,15 +383,16 @@ export class SceneComponent implements AfterViewInit {
 
       if (intersectionObject.object.parent != null && intersectionObject.object.parent !== scene) {
         this.enemyState.hp -= 10;
-        console.log('damage to enemy', intersectionObject.object);
+        console.log('damage to enemy', intersectionObject.object, intersectionObject.object.parent, intersectionObject.point);
         player.hit();
         this.se.play('damage');
         this.enemies.forEach(enemy => {
-          const exe = ex.clone();
           const vec = intersectionObject.point.clone();
-          enemy.worldToLocal(vec);
+          const v = enemy.parent.worldToLocal(vec);
+          const exe = new Explosion({direction: -1, position: v, fireTime: 10000});
+          console.log(enemy.parent, v);
+          enemy.parent.add(exe);
           exe.position.copy(vec);
-          enemy.add(exe);
           enemy.damage(this.enemyState.hp);
           this.explosions.push(exe);
         });

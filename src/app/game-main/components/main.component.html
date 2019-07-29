@@ -1,19 +1,16 @@
 <div fxLayout="column" fxLayoutAlign="space-between" fxLayoutGap="16px">
   <div fxLayout="row" fxLayoutAlign="end stretch" fxLayoutGap="8px">
-    <div *ngIf="gameState">GameStatus: {{gameState.status}}</div>
-    <div *ngIf="myState">MyStatus: {{myState.status}}</div>
-    <div *ngIf="enemyState">EnemyStatus: {{enemyState.status}}</div>
+<!--    <div *ngIf="gameState">GameStatus: {{gameState.status}}</div>-->
+<!--    <div *ngIf="myState">MyStatus: {{myState.status}}</div>-->
+<!--    <div *ngIf="enemyState">EnemyStatus: {{enemyState.status}}</div>-->
     <button mat-icon-button (click)="openSettingDialog()">
       <mat-icon>settings</mat-icon>
     </button>
   </div>
   <div *ngIf="!loading && gameState && myState && enemyState else loadingView" [ngSwitch]="gameState.status"  fxLayout="column" fxLayoutAlign="space-around center">
     <div *ngSwitchCase="'wait'">
-      <section class="mat-typography">
-        <h1 class="mat-display-4">ガンメンタイセン</h1>
-        <div fxLayout="column" fxLayoutAlign="end end">
-          <h2 class="mat-display-3">ツヴァイ</h2>
-        </div>
+      <section class="mat-typography titleSection">
+        <h1 class="mat-display-4 title">ガンメンタイセン <img class="subTitle" src="/assets/images/zwei.png" alt="zwei"></h1>
       </section>
       <div fxLayout="column" fxLayoutAlign="stretch center">
         <button class="startButton" color="primary" mat-button (click)="newGame()">Press Start Button</button>
@@ -31,9 +28,9 @@
         (finishSetup)="updateMyStatus.emit({status: 'prepared', value: $event})"
         (canceled)="updateMyStatus.emit({status: 'prepare', value: undefined})"
       ></at-prepare>
-      <div>
-        <button mat-raised-button *ngIf="myState.status === 'prepared' && enemyState.status !== 'prepared'" disabled>対戦相手が準備中...</button>
-        <button mat-raised-button color="primary" *ngIf="myState.status === 'prepared' && enemyState.status === 'prepared'" (click)="updateGameStatus.emit('prepared')">対戦準備完了！</button>
+      <div fxLayout="column" fxLayoutAlign="space-between center">
+        <button mat-button *ngIf="myState.status === 'prepared' && enemyState.status !== 'prepared'" disabled>対戦相手が準備中...</button>
+        <button mat-button color="primary" *ngIf="myState.status === 'prepared' && enemyState.status === 'prepared'" (click)="updateGameStatus.emit('prepared')">対戦準備完了！</button>
       </div>
     </div>
     <div *ngSwitchDefault>
