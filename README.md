@@ -6,6 +6,8 @@
 また `mosquitto` をインストールして下さい。
 macの場合は `brew install mosquitto` でインストールできます。 
 
+またChromeのShape Detection APIを利用すため、 Chromeで `chrome://flags/#enable-experimental-web-platform-features`を開き `Experimental Web Platform features` をEnableにしてChromeを再起動して下さい。
+
 ## Development server
 
 `ng serre`で開発サーバが立ち上がります。 起動後 http://localhost:4300 にアクセスして下さい。
